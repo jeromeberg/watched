@@ -1,0 +1,34 @@
+name: Docker build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend (dev)
+            context: backend
+            dockerfile: backend/Dockerfile.dev
+            build_args: ""
+          - name: backend (prod)
+            context: backend
+            dockerfile: backend/Dockerfile.prod
+            build_args: ""
+          - name: frontend (dev)
+            context: frontend
+            dockerfile: frontend/Dockerfile.dev
+            build_args: ""
+          - name: frontend (prod)
+            context: frontend
+            dockerfile: frontend/Dockerfile.prod
+            build_args: "--build-arg VITE_API_URL=http://localhost:3000"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.name }}
+        run: docker build -f ${{ matrix.dockerfile }} ${{ matrix.build_args }} ${{ matrix.context }}
