@@ -1,0 +1,133 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TitleType {
+  MOVIE
+  TV
+}
+
+enum WatchStatus {
+  WATCHED
+  TO_WATCH
+}
+
+model User {
+  id             Int            @id @default(autoincrement())
+  username       String         @unique
+  passwordHash   String
+  bio            String?
+  createdAt      DateTime       @default(now())
+  titles         UserTitle[]
+  episodeWatches EpisodeWatch[]
+  collections    Collection[]
+  topPicks       UserTopPick[]
+}
+
+model Title {
+  id          Int       @id @default(autoincrement())
+  tmdbId      Int
+  type        TitleType
+  title       String
+  posterUrl   String?
+  releaseYear Int?
+  imdbId      String?
+  director    String?
+
+  userTitles      UserTitle[]
+  seasons         Season[]
+  collectionItems CollectionItem[]
+  topPicks        UserTopPick[]
+
+  @@unique([tmdbId, type])
+}
+
+model Season {
+  id           Int     @id @default(autoincrement())
+  showId       Int
+  seasonNumber Int
+  name         String?
+
+  show     Title     @relation(fields: [showId], references: [id])
+  episodes Episode[]
+
+  @@unique([showId, seasonNumber])
+}
+
+model Episode {
+  id            Int     @id @default(autoincrement())
+  seasonId      Int
+  episodeNumber Int
+  title         String
+  airDate       String?
+
+  season  Season         @relation(fields: [seasonId], references: [id])
+  watches EpisodeWatch[]
+
+  @@unique([seasonId, episodeNumber])
+}
+
+model EpisodeWatch {
+  userId    Int
+  episodeId Int
+  watchedAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  episode Episode @relation(fields: [episodeId], references: [id])
+
+  @@id([userId, episodeId])
+}
+
+model UserTitle {
+  userId  Int
+  titleId Int
+  rating  Int?
+  status  WatchStatus @default(TO_WATCH)
+  notes   String?
+  addedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  title Title @relation(fields: [titleId], references: [id])
+
+  @@id([userId, titleId])
+}
+
+model UserTopPick {
+  userId  Int
+  titleId Int
+  rank    Int
+
+  user  User  @relation(fields: [userId], references: [id])
+  title Title @relation(fields: [titleId], references: [id])
+
+  @@id([userId, rank])
+  @@unique([userId, titleId])
+}
+
+model Collection {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  user  User            @relation(fields: [userId], references: [id])
+  items CollectionItem[]
+}
+
+model CollectionItem {
+  collectionId Int
+  titleId      Int
+  addedAt      DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id])
+  title      Title      @relation(fields: [titleId], references: [id])
+
+  @@id([collectionId, titleId])
+}
