@@ -41,6 +41,17 @@ export function CollectionDetailPage() {
     navigate('/collections');
   }
 
+  function handleTitleUpdate(id: number, updates: Partial<Title>) {
+    setCollection((prev) =>
+      prev
+        ? {
+            ...prev,
+            items: prev.items.map((i) => (i.titleId === id ? { ...i, title: { ...i.title, ...updates } } : i)),
+          }
+        : prev,
+    );
+  }
+
   function handleItemAdded(title: Title) {
     setCollection((prev) =>
       prev
@@ -141,6 +152,7 @@ export function CollectionDetailPage() {
             titles={titles}
             basePath={(title) => (title.type === 'MOVIE' ? moviesPath : showsPath)}
             onRemove={isOtherUser ? undefined : handleRemoveItem}
+            onTitleUpdate={handleTitleUpdate}
             username={username}
           />
         )}

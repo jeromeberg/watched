@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Modal } from './Modal';
-import { Detail } from './Detail';
+import { Detail, TitleUpdates } from './Detail';
 import { Text, textClasses } from './Text';
 import { MediaType } from '../types';
 
@@ -11,6 +11,7 @@ interface TitleDetailModalProps {
   fullPagePath: string;
   returnPath?: string;
   onClose: () => void;
+  onUpdate?: (id: number, updates: TitleUpdates) => void;
 }
 
 export function TitleDetailModal({
@@ -20,6 +21,7 @@ export function TitleDetailModal({
   fullPagePath,
   returnPath,
   onClose,
+  onUpdate,
 }: TitleDetailModalProps) {
   return (
     <Modal onClose={onClose} className="max-w-md flex flex-col max-h-[85vh] overflow-y-auto">
@@ -43,7 +45,7 @@ export function TitleDetailModal({
             ✕
           </Text>
         </div>
-        <Detail type={type} id={id} username={username} />
+        <Detail type={type} id={id} username={username} onUpdate={onUpdate} />
       </div>
     </Modal>
   );

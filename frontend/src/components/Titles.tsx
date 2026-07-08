@@ -6,6 +6,7 @@ import { pathFor, BasePath } from '../utils/titlesPath';
 import { ViewToggle } from './ViewToggle';
 import { Dropdown } from './Dropdown';
 import { TitleDetailModal } from './TitleDetailModal';
+import { TitleUpdates } from './Detail';
 import { useViewMode } from '../hooks/useViewMode';
 import { SortKey, SORTS, sortTitles } from '../utils/titlesSort';
 import { Text } from './Text';
@@ -16,6 +17,7 @@ interface TitlesProps {
   titles: Title[];
   basePath?: BasePath;
   onRemove?: (id: number) => void;
+  onTitleUpdate?: (id: number, updates: TitleUpdates) => void;
   username?: string; // undefined = own
 }
 
@@ -25,7 +27,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'watched', label: 'Watched' },
 ];
 
-export function Titles({ type, titles, basePath, onRemove, username }: TitlesProps) {
+export function Titles({ type, titles, basePath, onRemove, onTitleUpdate, username }: TitlesProps) {
   const location = useLocation();
   const [viewMode, setViewMode] = useViewMode(type ?? 'mixed');
   const [filter, setFilter] = useState<Filter>('all');
@@ -102,6 +104,7 @@ export function Titles({ type, titles, basePath, onRemove, username }: TitlesPro
           fullPagePath={`${pathFor(selected, type, basePath)}/${selected.id}`}
           returnPath={location.pathname}
           onClose={() => setSelected(null)}
+          onUpdate={onTitleUpdate}
         />
       )}
     </section>

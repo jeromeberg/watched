@@ -21,6 +21,10 @@ export function TitlesPage({ type }: { type: MediaType }) {
     api.get<Title[]>(path).then(setTitles).catch(console.error);
   }, [type, username, isOtherUser]);
 
+  function handleTitleUpdate(id: number, updates: Partial<Title>) {
+    setTitles((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+  }
+
   return (
     <Layout>
       {isOtherUser ? (
@@ -35,7 +39,13 @@ export function TitlesPage({ type }: { type: MediaType }) {
       ) : (
         <TitlesSearch type={type} titles={titles} onAdd={(title) => setTitles((prev) => [title, ...prev])} />
       )}
-      <Titles type={type} titles={titles} basePath={basePath} username={username} />
+      <Titles
+        type={type}
+        titles={titles}
+        basePath={basePath}
+        username={username}
+        onTitleUpdate={handleTitleUpdate}
+      />
     </Layout>
   );
 }

@@ -7,15 +7,16 @@ import { Text } from './Text';
 import { ShowSeasons } from './ShowSeasons';
 import { Textarea } from './Textarea';
 
-type TitleUpdates = Partial<Pick<Title, 'rating' | 'status' | 'notes'>>;
+export type TitleUpdates = Partial<Pick<Title, 'rating' | 'status' | 'notes'>>;
 
 interface DetailProps {
   type: MediaType;
   id: string | number;
   username?: string;
+  onUpdate?: (id: number, updates: TitleUpdates) => void;
 }
 
-export function Detail({ type, id, username }: DetailProps) {
+export function Detail({ type, id, username, onUpdate }: DetailProps) {
   const { user } = useAuth();
   const titleId = Number(id);
   const isOtherUser = !!username && username !== user?.username;
@@ -67,6 +68,7 @@ export function Detail({ type, id, username }: DetailProps) {
   async function handleUpdate(updates: TitleUpdates) {
     await api.patch(`/titles/${titleId}`, updates);
     setTitle((prev) => (prev ? { ...prev, ...updates } : prev));
+    onUpdate?.(titleId, updates);
   }
 
   async function handleStatus(status: WatchStatus) {
