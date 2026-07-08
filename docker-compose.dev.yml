@@ -32,7 +32,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-watched}
       JWT_SECRET: ${JWT_SECRET:-dev-secret-change-in-production}
       TMDB_API_KEY: ${TMDB_API_KEY:-}
-      CORS_ORIGIN: ${CORS_ORIGIN:-}
+      CORS_ORIGIN: ${DEV_URL:-}
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       db:
@@ -53,7 +53,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_API_URL: ${DEV_API_URL:-http://localhost:3000}
 
 volumes:
   pgdata:

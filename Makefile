@@ -1,19 +1,31 @@
+-include .env
+
 DEV := -f docker-compose.dev.yml
 PROD := -f docker-compose.prod.yml
+CLOUD := $(PROD) -f docker-compose.cloud.yml
 
 dev:
 	docker compose $(DEV) up --build -d
+	@echo "Running on $(DEV_URL)"
 
 prod:
 	docker compose $(PROD) up --build -d
+	@echo "Running on $(PROD_URL)"
+
+cloud:
+	PROD_API_URL=$(CLOUD_API_URL) PROD_URL=$(CLOUD_URL) docker compose $(CLOUD) up --build -d
+	@echo "Running on $(CLOUD_URL)"
 
 down:
 	docker compose $(DEV) down
 	docker compose $(PROD) down
+	-docker compose $(CLOUD) down
 
 redev: down dev
 
 reprod: down prod
+
+recloud: down cloud
 
 logs:
 	docker compose $(DEV) logs -f
@@ -46,4 +58,4 @@ db-wipe:
 	docker compose $(DEV) down -v
 	@echo "Volume wiped."
 
-.PHONY: dev prod down redev reprod logs restart backend-shell db-shell migrate prisma db-dump db-restore db-wipe
+.PHONY: dev prod cloud down redev reprod recloud logs backend-shell db-shell migrate prisma db-dump db-restore db-wipe

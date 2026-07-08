@@ -35,7 +35,7 @@ Requires Docker and Docker Compose.
 
 ### Quick start
 
-⚠️ A [TMDB](https://www.themoviedb.org/) API key is required.
+⚠️ A [TMDB API](https://developer.themoviedb.org/docs/getting-started) key is required.
 
 ```bash
 # copy and fill env
@@ -48,20 +48,37 @@ make dev
 make prod
 ```
 
+### Cloudflare Tunnel
+
+Expose the app publicly via [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/).
+
+`CLOUDFLARE_TOKEN`, `CLOUD_URL` and `CLOUD_API_URL` need to be filled in `.env`.  
+
+Both `CLOUD_URL` and `CLOUD_API_URL` override production values when running `make cloud`.
+
+```bash
+# build prod and start tunnel
+make cloud
+```
+
+⚠️ The API should be exposed on its own domain or **single-level** subdomain (e.g. `api.yourdomain.com`) so it is covered by Cloudflare's SSL certificate.
+
 ### Commands
 
 | Command                     | Description              |
 | --------------------------- | ------------------------ |
 | `make dev`                  | Start in dev mode        |
 | `make prod`                 | Start in prod mode       |
+| `make cloud`                | Prod + Cloudflare Tunnel |
 | `make down`                 | Stop all containers      |
-| `make redev`                | Rebuild and restart dev  |
-| `make reprod`               | Rebuild and restart prod |
-| `make logs`                 | Get logs (dev only)      |
-| `make backend-shell`        | Open backend shell       |
-| `make db-shell`             | Open db shell            |
-| `make migrate`              | Run Prisma migration     |
-| `make prisma`               | Open Prisma Studio       |
-| `make db-dump`              | Dump database            |
-| `make db-restore FILE=path` | Restore a dump           |
-| `make db-wipe`              | Delete db volume         |
+| `make redev`                | Rebuild and start dev    |
+| `make reprod`               | Rebuild and start prod   |
+| `make recloud`              | Rebuild and start cloud  |
+| `make logs`                 | Tail logs (dev)          |
+| `make backend-shell`        | Open backend shell (dev) |
+| `make db-shell`             | Open db shell (dev)      |
+| `make migrate`              | Prisma migration (dev)   |
+| `make prisma`               | Open Prisma Studio (dev) |
+| `make db-dump`              | Dump database (dev)      |
+| `make db-restore FILE=path` | Restore a dump (dev)     |
+| `make db-wipe`              | Delete db volume (dev)   |
