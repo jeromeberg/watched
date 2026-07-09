@@ -137,10 +137,10 @@ export function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <Text as="h2" variant="label">
-              Movies
+              🎬 Movies
             </Text>
-            <Link to={`/u/${profile.username}/movies`} className={textClasses('link', 'xs', 'subtle')}>
-              View all
+            <Link to={`/u/${profile.username}/movies`} className={textClasses('link', 'xs', 'muted')}>
+              ↗ View all
             </Link>
           </div>
 
@@ -160,10 +160,10 @@ export function ProfilePage() {
         <section className="space-y-4">
           <div className="flex items-center justify-between">
             <Text as="h2" variant="label">
-              Shows
+              📺 Shows
             </Text>
-            <Link to={`/u/${profile.username}/shows`} className={textClasses('link', 'xs', 'subtle')}>
-              View all
+            <Link to={`/u/${profile.username}/shows`} className={textClasses('link', 'xs', 'muted')}>
+              ↗ View all
             </Link>
           </div>
 
@@ -182,7 +182,7 @@ export function ProfilePage() {
         {/* Collections */}
         <section className="space-y-4">
           <Text as="h2" variant="label">
-            Collections
+            📚 Collections
           </Text>
           {profile.collections.length > 0 ? (
             <CollectionsGrid

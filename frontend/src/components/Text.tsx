@@ -33,7 +33,7 @@ const DEFAULT_SIZE: Record<TextVariant, TextSize> = {
 
 const DEFAULT_COLOR: Record<TextVariant, TextColor> = {
   body: 'muted',
-  label: 'subtle',
+  label: 'muted',
   link: 'muted',
   heading: 'white',
 };

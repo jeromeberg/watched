@@ -63,7 +63,7 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <Text as="h2" variant="label">
-          Top Picks
+          ⭐️ Top Picks
         </Text>
         {isOwnProfile &&
           (editing ? (

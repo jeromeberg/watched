@@ -23,8 +23,8 @@ interface TitlesProps {
 
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'to_watch', label: 'To watch' },
-  { key: 'watched', label: 'Watched' },
+  { key: 'to_watch', label: '⊙ To watch' },
+  { key: 'watched', label: '✓ Watched' },
 ];
 
 export function Titles({ type, titles, basePath, onRemove, onTitleUpdate, username }: TitlesProps) {

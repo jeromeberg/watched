@@ -58,7 +58,7 @@ export function AuthForm({
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
           <div className="space-y-1">
-            <Text as="label" className="block">
+            <Text as="label" variant="label" className="block">
               Username
             </Text>
             <Input
@@ -71,7 +71,7 @@ export function AuthForm({
           </div>
 
           <div className="space-y-1">
-            <Text as="label" className="block">
+            <Text as="label" variant="label" className="block">
               Password
             </Text>
             <Input
