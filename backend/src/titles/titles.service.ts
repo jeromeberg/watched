@@ -169,6 +169,18 @@ export class TitlesService {
     });
   }
 
+  async removeUserTitle(userId: number, titleId: number) {
+    const userTitle = await this.prisma.userTitle.findUnique({
+      where: { userId_titleId: { userId, titleId } },
+    });
+    if (!userTitle) throw new NotFoundException('Title not in your list');
+
+    await this.prisma.userTitle.delete({
+      where: { userId_titleId: { userId, titleId } },
+    });
+    return { ok: true };
+  }
+
   private mergeUserTitle(row: {
     title: {
       id: number;

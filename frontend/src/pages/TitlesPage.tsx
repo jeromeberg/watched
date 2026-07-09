@@ -25,6 +25,11 @@ export function TitlesPage({ type }: { type: MediaType }) {
     setTitles((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
   }
 
+  async function handleRemove(id: number) {
+    await api.delete(`/titles/${id}`);
+    setTitles((prev) => prev.filter((t) => t.id !== id));
+  }
+
   return (
     <Layout>
       {isOtherUser ? (
@@ -44,6 +49,7 @@ export function TitlesPage({ type }: { type: MediaType }) {
         titles={titles}
         basePath={basePath}
         username={username}
+        onRemove={isOtherUser ? undefined : handleRemove}
         onTitleUpdate={handleTitleUpdate}
       />
     </Layout>
