@@ -4,8 +4,10 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Title, WatchStatus, MediaType, MEDIA, Season } from '../types';
 import { Text } from './Text';
+import { Button } from './Button'
 import { ShowSeasons } from './ShowSeasons';
 import { Textarea } from './Textarea';
+import { DeleteModal } from './DeleteModal';
 
 export type TitleUpdates = Partial<Pick<Title, 'rating' | 'status' | 'notes'>>;
 
@@ -14,9 +16,10 @@ interface DetailProps {
   id: string | number;
   username?: string;
   onUpdate?: (id: number, updates: TitleUpdates) => void;
+  onRemove?: (id: number) => void;
 }
 
-export function Detail({ type, id, username, onUpdate }: DetailProps) {
+export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) {
   const { user } = useAuth();
   const titleId = Number(id);
   const isOtherUser = !!username && username !== user?.username;
@@ -31,6 +34,7 @@ export function Detail({ type, id, username, onUpdate }: DetailProps) {
   const [savingRating, setSavingRating] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
   const [localNotes, setLocalNotes] = useState('');
+  const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     setNotFound(false);
@@ -98,6 +102,11 @@ export function Detail({ type, id, username, onUpdate }: DetailProps) {
     setTimeout(() => setNotesSaved(false), 1500);
   }
 
+  async function handleDelete() {
+    await api.delete(`/titles/${titleId}`);
+    onRemove?.(titleId);
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -115,14 +124,16 @@ export function Detail({ type, id, username, onUpdate }: DetailProps) {
         </div>
 
         <div className="flex-1 min-w-0 space-y-4">
-          <div>
-            <Text as="h1" variant="heading" size="2xl" className="leading-tight">
-              {title.title}
-            </Text>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Text variant="label" color="muted">
-                {title.releaseYear ?? '—'} {title.director && '-'} {title.director}
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <Text as="h1" variant="heading" size="2xl" className="leading-tight">
+                {title.title}
               </Text>
+              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                <Text variant="label" color="muted">
+                  {title.releaseYear ?? '—'} {title.director && '-'} {title.director}
+                </Text>
+              </div>
             </div>
           </div>
 
@@ -201,9 +212,30 @@ export function Detail({ type, id, username, onUpdate }: DetailProps) {
         </div>
       )}
 
+      {/* Delete button */ }
+      {!isOtherUser && (
+              <Button
+
+                variant="dangerOutline"
+                
+                onClick={() => setShowDelete(true)}
+              >
+                Delete
+              </Button>
+            )}
+
       {/* Seasons (for shows) */}
       {type === 'show' && (
         <ShowSeasons key={titleId} seasons={seasons} onSeasonsChange={setSeasons} isOtherUser={isOtherUser} />
+      )}
+
+      {showDelete && (
+        <DeleteModal
+          heading="Remove title"
+          message={`Remove "${title.title}" from your list? This cannot be undone.`}
+          onConfirm={handleDelete}
+          onClose={() => setShowDelete(false)}
+        />
       )}
     </div>
   );

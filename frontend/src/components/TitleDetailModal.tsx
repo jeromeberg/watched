@@ -12,6 +12,7 @@ interface TitleDetailModalProps {
   returnPath?: string;
   onClose: () => void;
   onUpdate?: (id: number, updates: TitleUpdates) => void;
+  onRemove?: (id: number) => void;
 }
 
 export function TitleDetailModal({
@@ -22,7 +23,13 @@ export function TitleDetailModal({
   returnPath,
   onClose,
   onUpdate,
+  onRemove,
 }: TitleDetailModalProps) {
+  function handleRemove(removedId: number) {
+    onRemove?.(removedId);
+    onClose();
+  }
+
   return (
     <Modal onClose={onClose} className="max-w-md flex flex-col max-h-[85vh] overflow-y-auto">
       <div className="p-6 space-y-6">
@@ -45,7 +52,7 @@ export function TitleDetailModal({
             ✕
           </Text>
         </div>
-        <Detail type={type} id={id} username={username} onUpdate={onUpdate} />
+        <Detail type={type} id={id} username={username} onUpdate={onUpdate} onRemove={handleRemove} />
       </div>
     </Modal>
   );

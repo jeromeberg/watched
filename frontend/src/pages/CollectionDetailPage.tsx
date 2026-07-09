@@ -24,6 +24,7 @@ export function CollectionDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const [pendingRemoveItem, setPendingRemoveItem] = useState<Title | null>(null);
 
   useEffect(() => {
     api.get<CollectionDetail>(basePath).then(setCollection).catch(console.error);
@@ -151,7 +152,12 @@ export function CollectionDetailPage() {
           <Titles
             titles={titles}
             basePath={(title) => (title.type === 'MOVIE' ? moviesPath : showsPath)}
-            onRemove={isOtherUser ? undefined : handleRemoveItem}
+            onRemove={
+              isOtherUser
+                ? undefined
+                : (id) => setPendingRemoveItem(titles.find((t) => t.id === id) ?? null)
+            }
+            onRemoved={handleItemRemoved}
             onTitleUpdate={handleTitleUpdate}
             username={username}
           />
@@ -183,6 +189,15 @@ export function CollectionDetailPage() {
           message="Delete this collection? This cannot be undone."
           onConfirm={handleDelete}
           onClose={() => setShowDelete(false)}
+        />
+      )}
+
+      {pendingRemoveItem && (
+        <DeleteModal
+          heading="Remove title"
+          message={`Remove "${pendingRemoveItem.title}" from this collection? This cannot be undone.`}
+          onConfirm={() => handleRemoveItem(pendingRemoveItem.id)}
+          onClose={() => setPendingRemoveItem(null)}
         />
       )}
     </Layout>

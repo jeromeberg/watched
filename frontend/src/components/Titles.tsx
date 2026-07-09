@@ -17,6 +17,7 @@ interface TitlesProps {
   titles: Title[];
   basePath?: BasePath;
   onRemove?: (id: number) => void;
+  onRemoved?: (id: number) => void;
   onTitleUpdate?: (id: number, updates: TitleUpdates) => void;
   username?: string; // undefined = own
 }
@@ -27,7 +28,7 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'watched', label: '✓ Watched' },
 ];
 
-export function Titles({ type, titles, basePath, onRemove, onTitleUpdate, username }: TitlesProps) {
+export function Titles({ type, titles, basePath, onRemove, onRemoved, onTitleUpdate, username }: TitlesProps) {
   const location = useLocation();
   const [viewMode, setViewMode] = useViewMode(type ?? 'mixed');
   const [filter, setFilter] = useState<Filter>('all');
@@ -105,6 +106,7 @@ export function Titles({ type, titles, basePath, onRemove, onTitleUpdate, userna
           returnPath={location.pathname}
           onClose={() => setSelected(null)}
           onUpdate={onTitleUpdate}
+          onRemove={onRemoved}
         />
       )}
     </section>

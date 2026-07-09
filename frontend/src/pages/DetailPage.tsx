@@ -1,4 +1,4 @@
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { Detail } from '../components/Detail';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ import { textClasses } from '../components/Text';
 export function DetailPage({ type }: { type: MediaType }) {
   const { username, id } = useParams<{ username?: string; id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const isOtherUser = !!username && username !== user?.username;
   const from = (location.state as { from?: string } | null)?.from;
@@ -33,7 +34,7 @@ export function DetailPage({ type }: { type: MediaType }) {
             Go back
           </Link>
         </div>
-        <Detail type={type} id={id!} username={username} />
+        <Detail type={type} id={id!} username={username} onRemove={() => navigate(listPath)} />
       </main>
     </Layout>
   );
