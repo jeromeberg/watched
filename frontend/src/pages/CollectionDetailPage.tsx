@@ -47,7 +47,9 @@ export function CollectionDetailPage() {
       prev
         ? {
             ...prev,
-            items: prev.items.map((i) => (i.titleId === id ? { ...i, title: { ...i.title, ...updates } } : i)),
+            items: prev.items.map((i) =>
+              i.titleId === id ? { ...i, title: { ...i.title, ...updates } } : i,
+            ),
           }
         : prev,
     );
@@ -153,9 +155,7 @@ export function CollectionDetailPage() {
             titles={titles}
             basePath={(title) => (title.type === 'MOVIE' ? moviesPath : showsPath)}
             onRemove={
-              isOtherUser
-                ? undefined
-                : (id) => setPendingRemoveItem(titles.find((t) => t.id === id) ?? null)
+              isOtherUser ? undefined : (id) => setPendingRemoveItem(titles.find((t) => t.id === id) ?? null)
             }
             onRemoved={handleItemRemoved}
             onTitleUpdate={handleTitleUpdate}

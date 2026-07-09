@@ -61,6 +61,7 @@ export interface Title extends PosterItem {
   type: string;
   notes: string | null;
   description: string | null;
+  imdbId: string | null;
   addedAt?: string;
 }
 

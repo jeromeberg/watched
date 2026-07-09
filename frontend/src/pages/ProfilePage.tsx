@@ -126,10 +126,10 @@ export function ProfilePage() {
         </ProfileHeader>
 
         {isOwnProfile && (
-            <div>
-          <Link to="/settings" className={buttonClasses('secondary')}>
-            Account settings
-          </Link>
+          <div>
+            <Link to="/settings" className={buttonClasses('secondary')}>
+              Account settings
+            </Link>
           </div>
         )}
 
@@ -203,7 +203,7 @@ export function ProfilePage() {
         </section>
       </div>
 
-      { /* Modal */ }  
+      {/* Modal */}
       {selected && (
         <TitleDetailModal
           type={selected.type}

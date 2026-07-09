@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { Title, WatchStatus, MediaType, MEDIA, Season } from '../types';
 import { Text } from './Text';
-import { Button } from './Button'
+import { Button, buttonClasses } from './Button';
 import { ShowSeasons } from './ShowSeasons';
 import { Textarea } from './Textarea';
 import { DeleteModal } from './DeleteModal';
@@ -129,6 +129,7 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
               <Text as="h1" variant="heading" size="2xl" className="leading-tight">
                 {title.title}
               </Text>
+
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <Text variant="label" color="muted">
                   {title.releaseYear ?? '—'} {title.director && '-'} {title.director}
@@ -160,7 +161,22 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
           {/* Rating */}
           <StarRating value={title.rating} onChange={handleRating} disabled={savingRating || isOtherUser} />
 
-          {/* Progress (for shows) */}
+          
+        </div>
+      </div>
+
+      {title.imdbId && (
+            <div><a
+              href={`https://www.imdb.com/title/${title.imdbId}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={buttonClasses('yellow', 'xs', 'inline-block')}
+            >
+              IMDb
+            </a></div>
+          )}
+
+      {/* Progress (for shows) */}
           {type === 'show' && totalEps > 0 && (
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs text-gray-400">
@@ -177,8 +193,8 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
               </div>
             </div>
           )}
-        </div>
-      </div>
+
+        
 
       {/* Overview */}
       {title.description && (
@@ -216,27 +232,34 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
             onBlur={handleNotesSave}
             rows={2}
             maxLength={500}
-            placeholder="Add a short note..."
+            placeholder="Add a comment..."
             className="text-sm"
           />
         </div>
       )}
 
-      {/* Delete button */ }
-      {!isOtherUser && (
-              <Button
-
-                variant="dangerOutline"
-                
-                onClick={() => setShowDelete(true)}
-              >
-                Delete
-              </Button>
-            )}
-
       {/* Seasons (for shows) */}
       {type === 'show' && (
-        <ShowSeasons key={titleId} seasons={seasons} onSeasonsChange={setSeasons} isOtherUser={isOtherUser} />
+        <div className="space-y-1.5">
+          <Text variant="label">Episodes</Text>
+
+
+            
+
+          <ShowSeasons
+            key={titleId}
+            seasons={seasons}
+            onSeasonsChange={setSeasons}
+            isOtherUser={isOtherUser}
+          />
+        </div>
+      )}
+
+      {/* Delete button */}
+      {!isOtherUser && (
+        <Button variant="dangerOutline" onClick={() => setShowDelete(true)}>
+          Delete
+        </Button>
       )}
 
       {showDelete && (

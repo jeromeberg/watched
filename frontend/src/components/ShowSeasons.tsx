@@ -118,7 +118,7 @@ export function ShowSeasons({ seasons, onSeasonsChange, isOtherUser }: ShowSeaso
                 >
                   ▶
                 </Text>
-                <span className="font-semibold">{seasonLabel}</span>
+                <span className="text-sm">{seasonLabel}</span>
                 <Text as="span" size="xs" color="subtle">
                   {sw}/{st}
                 </Text>

@@ -28,7 +28,15 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'watched', label: '✓ Watched' },
 ];
 
-export function Titles({ type, titles, basePath, onRemove, onRemoved, onTitleUpdate, username }: TitlesProps) {
+export function Titles({
+  type,
+  titles,
+  basePath,
+  onRemove,
+  onRemoved,
+  onTitleUpdate,
+  username,
+}: TitlesProps) {
   const location = useLocation();
   const [viewMode, setViewMode] = useViewMode(type ?? 'mixed');
   const [filter, setFilter] = useState<Filter>('all');

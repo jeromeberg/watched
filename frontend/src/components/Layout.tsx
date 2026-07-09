@@ -114,7 +114,11 @@ export function Layout({ children }: { children: ReactNode }) {
                   Sign out
                 </Text>
               ) : (
-                <Link to="/login" onClick={() => setMenuOpen(false)} className={textClasses('link', 'sm', 'muted')}>
+                <Link
+                  to="/login"
+                  onClick={() => setMenuOpen(false)}
+                  className={textClasses('link', 'sm', 'muted')}
+                >
                   Sign in
                 </Link>
               )}
@@ -127,7 +131,11 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <Text color="muted">Copyright (c) 2026 Jerome Berg</Text>
           <div className="flex items-center gap-4">
-            <a href="https://github.com/jeromeberg/watched" className={textClasses('link', 'sm', 'muted')}>
+            <a
+              href="https://github.com/jeromeberg/watched"
+              target="_blank"
+              className={textClasses('link', 'sm', 'muted')}
+            >
               Github
             </a>
           </div>

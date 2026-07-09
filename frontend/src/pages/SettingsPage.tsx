@@ -103,7 +103,11 @@ export function SettingsPage() {
         </Container>
 
         {/* Delete account */}
-        <Container variant="danger" label="⚠️ Danger zone" className="flex items-center justify-between gap-4">
+        <Container
+          variant="danger"
+          label="⚠️ Danger zone"
+          className="flex items-center justify-between gap-4"
+        >
           <Text color="muted">Permanently delete your account and data.</Text>
           <Button variant="danger" disabled title="Coming soon">
             Delete account
