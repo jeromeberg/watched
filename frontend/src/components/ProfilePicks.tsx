@@ -17,6 +17,8 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
   const [allTitles, setAllTitles] = useState<Title[]>([]);
   const [picks, setPicks] = useState<Title[]>([]);
   const [saving, setSaving] = useState(false);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOver, setDragOver] = useState<{ index: number; side: 'before' | 'after' } | null>(null);
 
   async function startEditing() {
     // The picker needs the full library; only fetched when entering edit mode.
@@ -40,6 +42,15 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
       const without = prev.filter((p) => p.id !== title.id);
       if (without.length !== prev.length) return without;
       return prev.length < 5 ? [...prev, title] : prev;
+    });
+  }
+
+  function reorderPicks(from: number, to: number) {
+    setPicks((prev) => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
     });
   }
 
@@ -82,7 +93,39 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
           {picks.length > 0 && (
             <div className="flex gap-4 flex-wrap">
               {picks.map((p, i) => (
-                <div key={p.id} className="relative w-24 cursor-pointer" onClick={() => togglePick(p)}>
+                <div
+                  key={p.id}
+                  draggable
+                  onDragStart={() => setDragIndex(i)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const side = e.clientX - rect.left < rect.width / 2 ? 'before' : 'after';
+                    setDragOver({ index: i, side });
+                  }}
+                  onDrop={() => {
+                    if (dragIndex !== null && dragOver !== null) {
+                      const rawTarget = dragOver.side === 'before' ? dragOver.index : dragOver.index + 1;
+                      const target = dragIndex < rawTarget ? rawTarget - 1 : rawTarget;
+                      if (target !== dragIndex) reorderPicks(dragIndex, target);
+                    }
+                    setDragIndex(null);
+                    setDragOver(null);
+                  }}
+                  onDragEnd={() => {
+                    setDragIndex(null);
+                    setDragOver(null);
+                  }}
+                  onClick={() => togglePick(p)}
+                  className={`relative w-24 cursor-grab active:cursor-grabbing transition-opacity ${dragIndex === i ? 'opacity-40' : ''}`}
+                >
+                  {dragIndex !== null && dragIndex !== i && dragOver?.index === i && (
+                    <div
+                      className={`absolute top-0 bottom-0 w-0.5 bg-blue-400 rounded ${
+                        dragOver.side === 'before' ? '-left-2' : '-right-2'
+                      }`}
+                    />
+                  )}
                   <div className="rounded-lg ring-2 ring-blue-500">
                     <Poster title={p} />
                   </div>
@@ -110,7 +153,7 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
           {allTitles.length === 0 ? (
             <Text color="faint">Add some movies or shows to your list first.</Text>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3">
+            <div className="flex flex-wrap gap-3">
               {allTitles.map((t) => {
                 const pickIdx = picks.findIndex((p) => p.id === t.id);
                 const selected = pickIdx !== -1;
@@ -119,7 +162,7 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
                   <div
                     key={t.id}
                     onClick={() => !disabled && togglePick(t)}
-                    className={`relative cursor-pointer ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+                    className={`relative w-24 cursor-pointer ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
                   >
                     <div
                       className={`rounded-lg transition-all ${selected ? 'ring-2 ring-blue-500' : 'hover:ring-1 hover:ring-gray-500'}`}
