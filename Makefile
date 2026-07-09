@@ -58,4 +58,14 @@ db-wipe:
 	docker compose $(DEV) down -v
 	@echo "Volume wiped."
 
-.PHONY: dev prod cloud down redev reprod recloud logs backend-shell db-shell migrate prisma db-dump db-restore db-wipe
+ENV ?= dev
+tmdb-refresh:
+ifeq ($(ENV),prod)
+	docker compose $(PROD) exec -T backend node < scripts/tmdb-refresh.js
+else ifeq ($(ENV),cloud)
+	docker compose $(CLOUD) exec -T backend node < scripts/tmdb-refresh.js
+else
+	docker compose $(DEV) exec -T backend node < scripts/tmdb-refresh.js
+endif
+
+.PHONY: dev prod cloud down redev reprod recloud logs backend-shell db-shell migrate prisma db-dump db-restore db-wipe tmdb-refresh

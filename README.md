@@ -82,3 +82,4 @@ make cloud
 | `make db-dump`              | Dump database (dev)      |
 | `make db-restore FILE=path` | Restore a dump (dev)     |
 | `make db-wipe`              | Delete db volume (dev)   |
+| `make tmdb-refresh`         | Refresh db from TMDB     |
