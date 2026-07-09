@@ -7,6 +7,7 @@ import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { DetailPage } from './pages/DetailPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { SettingsPage } from './pages/SettingsPage';
 import { TitlesPage } from './pages/TitlesPage';
 
 function App() {
@@ -61,6 +62,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <CollectionDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

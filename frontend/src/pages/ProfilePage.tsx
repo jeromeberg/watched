@@ -9,7 +9,7 @@ import { CollectionsGrid } from '../components/CollectionsGrid';
 import { ProfilePicks } from '../components/ProfilePicks';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { TitleDetailModal } from '../components/TitleDetailModal';
-import { Button } from '../components/Button';
+import { Button, buttonClasses } from '../components/Button';
 import { Text, textClasses } from '../components/Text';
 import { Textarea } from '../components/Textarea';
 
@@ -124,6 +124,14 @@ export function ProfilePage() {
             </div>
           )}
         </ProfileHeader>
+
+        {isOwnProfile && (
+            <div>
+          <Link to="/settings" className={buttonClasses('secondary')}>
+            Account settings
+          </Link>
+          </div>
+        )}
 
         {/* Picks */}
         <ProfilePicks

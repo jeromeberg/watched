@@ -1,4 +1,4 @@
-import { useState, FormEvent, ReactNode } from 'react';
+import { useState, SubmitEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Text } from './Text';
 import { Input } from './Input';
@@ -30,7 +30,7 @@ export function AuthForm({
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError('');
     setLoading(true);

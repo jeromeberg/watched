@@ -10,6 +10,11 @@ class UpdateProfileDto {
   topPicks?: number[];
 }
 
+class ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}
+
 @Controller()
 export class UsersController {
   constructor(
@@ -77,5 +82,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   updateProfile(@Req() req: AuthenticatedRequest, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user.id, dto.bio, dto.topPicks);
+  }
+
+  @Patch('me/password')
+  @UseGuards(JwtAuthGuard)
+  changePassword(@Req() req: AuthenticatedRequest, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(req.user.id, dto.currentPassword, dto.newPassword);
   }
 }

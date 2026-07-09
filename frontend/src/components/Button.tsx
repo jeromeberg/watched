@@ -24,7 +24,7 @@ const SIZE_CLASSES: Record<ButtonSize, string> = {
 // Shared style builder so non-<button> elements (e.g. router <Link>s styled
 // as buttons) can reuse the exact same variant/size classes as <Button>.
 export function buttonClasses(variant: ButtonVariant = 'secondary', size: ButtonSize = 'sm', className = '') {
-  return `text-sm transition-colors cursor-pointer ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
+  return `text-sm transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${className}`;
 }
 
 // Active/inactive color pair for "pill" toggle groups (filter tabs, sort
