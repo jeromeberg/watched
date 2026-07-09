@@ -37,7 +37,7 @@ export function Layout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
       <header className="relative z-50 bg-gray-900 border-b border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -122,8 +122,8 @@ export function Layout({ children }: { children: ReactNode }) {
           </nav>
         )}
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-4 sm:px-6 sm:py-8 space-y-8">{children}</main>
-      <footer className="border-t border-gray-800 px-6 py-4">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-4 sm:px-6 sm:py-8 space-y-8">{children}</main>
+      <footer className=" px-6 py-4">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <Text color="muted">Copyright (c) 2026 Jerome Berg</Text>
           <div className="flex items-center gap-4">
