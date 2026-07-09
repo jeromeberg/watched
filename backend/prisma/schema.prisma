@@ -38,6 +38,7 @@ model Title {
   releaseYear Int?
   imdbId      String?
   director    String?
+  description String?
 
   userTitles      UserTitle[]
   seasons         Season[]

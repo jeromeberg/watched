@@ -180,6 +180,16 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
         </div>
       </div>
 
+      {/* Overview */}
+      {title.description && (
+        <div className="space-y-1.5">
+          <Text variant="label">Overview</Text>
+          <Text color="muted" className="leading-relaxed">
+            {title.description}
+          </Text>
+        </div>
+      )}
+
       {/* Notes */}
       {isOtherUser ? (
         title.notes && (

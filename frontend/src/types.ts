@@ -60,6 +60,7 @@ export interface Title extends PosterItem {
   tmdbId: number;
   type: string;
   notes: string | null;
+  description: string | null;
   addedAt?: string;
 }
 
@@ -70,6 +71,7 @@ export interface SearchResult {
   posterUrl: string | null;
   releaseYear: number | null;
   director: string | null;
+  description: string | null;
 }
 
 export const MEDIA: Record<MediaType, { path: string; label: string; noun: string }> = {

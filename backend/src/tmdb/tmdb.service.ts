@@ -6,6 +6,7 @@ interface TmdbMovieResult {
   title: string;
   poster_path: string | null;
   release_date: string;
+  overview: string | null;
 }
 
 interface TmdbTvResult {
@@ -13,6 +14,7 @@ interface TmdbTvResult {
   name: string;
   poster_path: string | null;
   first_air_date: string;
+  overview: string | null;
 }
 
 interface TmdbCredits {
@@ -68,6 +70,7 @@ export class TmdbService {
         posterUrl: this.posterUrl(m.poster_path),
         releaseYear: m.release_date ? parseInt(m.release_date.slice(0, 4), 10) : null,
         director: await this.getMovieDirector(m.id),
+        description: m.overview || null,
       })),
     );
   }
@@ -84,6 +87,7 @@ export class TmdbService {
         posterUrl: this.posterUrl(s.poster_path),
         releaseYear: s.first_air_date ? parseInt(s.first_air_date.slice(0, 4), 10) : null,
         director: await this.getTvCreator(s.id),
+        description: s.overview || null,
       })),
     );
   }

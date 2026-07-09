@@ -44,6 +44,7 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
         posterUrl: result.posterUrl,
         releaseYear: result.releaseYear,
         director: result.director,
+        description: result.description,
       });
       onAdd(added);
     } catch (err) {

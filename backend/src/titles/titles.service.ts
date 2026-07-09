@@ -9,6 +9,7 @@ export interface AddTitleDto {
   posterUrl?: string | null;
   releaseYear?: number | null;
   director?: string | null;
+  description?: string | null;
 }
 
 interface UpdateUserTitleDto {
@@ -93,10 +94,12 @@ export class TitlesService {
         releaseYear: dto.releaseYear ?? null,
         imdbId,
         director: dto.director ?? null,
+        description: dto.description ?? null,
       },
       update: {
         ...(imdbId ? { imdbId } : {}),
         ...(dto.director ? { director: dto.director } : {}),
+        ...(dto.description ? { description: dto.description } : {}),
       },
     });
 
@@ -191,6 +194,7 @@ export class TitlesService {
       releaseYear: number | null;
       imdbId: string | null;
       director: string | null;
+      description: string | null;
     };
     addedAt: Date;
     rating: number | null;
