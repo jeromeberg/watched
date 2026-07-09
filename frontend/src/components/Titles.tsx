@@ -51,8 +51,8 @@ export function Titles({ type, titles, basePath, onRemove, onTitleUpdate, userna
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex gap-1 bg-gray-800 rounded-lg p-1">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+        <div className="flex gap-1 bg-gray-800 rounded-lg p-1 self-start">
           {FILTERS.map(({ key, label }) => (
             <button
               key={key}
