@@ -33,6 +33,8 @@ jobs:
         if: matrix.project == 'backend'
         run: npx tsc --noEmit
 
+      - run: npm test --if-present
+
       - run: npm run build
 
   build-and-push:
@@ -82,21 +84,19 @@ jobs:
 
   deploy:
     needs: build-and-push
-    # Skipped if no DEPLOY_WEBHOOK_URL and WEBHOOK_SECRET
-    if: >
-      github.ref == 'refs/heads/main' && github.event_name == 'push' &&
-      secrets.DEPLOY_WEBHOOK_URL != '' && secrets.WEBHOOK_SECRET != ''
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    env:
+      WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
+      DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
     steps:
       - name: Trigger deploy webhook
-        env:
-          WEBHOOK_SECRET: ${{ secrets.WEBHOOK_SECRET }}
-          DEPLOY_WEBHOOK_URL: ${{ secrets.DEPLOY_WEBHOOK_URL }}
+        if: env.DEPLOY_WEBHOOK_URL != '' && env.WEBHOOK_SECRET != ''
         run: |
           set -euo pipefail
-          PAYLOAD=$(printf '{"ref":"%s","sha":"%s"}' "${{ github.ref }}" "${{ github.sha }}")
+          PAYLOAD=$(printf '{"ref":"%s","sha":"%s"}' "$GITHUB_REF" "$GITHUB_SHA")
           SIG=$(printf '%s' "$PAYLOAD" | openssl dgst -sha256 -hmac "$WEBHOOK_SECRET" -r | cut -d' ' -f1)
-          curl -sf -X POST "$DEPLOY_WEBHOOK_URL" \
+          curl -sf --max-time 30 -X POST "$DEPLOY_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: sha256=$SIG" \
             --data "$PAYLOAD"
