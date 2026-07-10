@@ -5,6 +5,8 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TOKEN:?CLOUDFLARE_TOKEN must be set}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - frontend
       - backend

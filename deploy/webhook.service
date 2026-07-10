@@ -1,0 +1,15 @@
+[Unit]
+Description=deploy webhook for watched
+After=network.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+EnvironmentFile=/opt/watched/.env
+ExecStart=/usr/bin/webhook -hooks /opt/watched/deploy/hooks.json -port 9000 -verbose -template
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

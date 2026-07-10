@@ -1,0 +1,18 @@
+[
+  {
+    "id": "deploy-watched",
+    "execute-command": "/opt/watched/deploy/deploy.sh",
+    "command-working-directory": "/opt/watched",
+    "response-message": "Deploy triggered.\n",
+    "trigger-rule": {
+      "match": {
+        "type": "payload-hmac-sha256",
+        "secret": "{{ getenv "WEBHOOK_SECRET" | js }}",
+        "parameter": {
+          "source": "header",
+          "name": "X-Hub-Signature-256"
+        }
+      }
+    }
+  }
+]

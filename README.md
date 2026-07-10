@@ -28,6 +28,8 @@ A full-stack movie/TV watchlist app, using the TMDB API.
 - ORM: Prisma
 - Containerization: Docker, Docker Compose
 - Nginx
+- Networking: Cloudflare Tunnel (optional)
+- CI/CD: GitHub Actions + webhook
 
 ## Instructions
 
@@ -73,13 +75,12 @@ make cloud
 | `make down`                 | Stop all containers      |
 | `make redev`                | Rebuild and start dev    |
 | `make reprod`               | Rebuild and start prod   |
-| `make recloud`              | Rebuild and start cloud  |
-| `make logs`                 | Tail logs (dev)          |
+| `make logs`                 | View logs                |
 | `make backend-shell`        | Open backend shell (dev) |
 | `make db-shell`             | Open db shell (dev)      |
 | `make migrate`              | Prisma migration (dev)   |
 | `make prisma`               | Open Prisma Studio (dev) |
-| `make db-dump`              | Dump database (dev)      |
-| `make db-restore FILE=path` | Restore a dump (dev)     |
-| `make db-wipe`              | Delete db volume (dev)   |
+| `make db-dump`              | Dump database            |
+| `make db-restore FILE=path` | Restore a dump           |
+| `make db-wipe`              | Delete db volume         |
 | `make tmdb-refresh`         | Refresh db from TMDB     |
