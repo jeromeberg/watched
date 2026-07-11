@@ -20,6 +20,19 @@ A full-stack movie/TV watchlist app, using the TMDB API.
 - TV shows: track episodes per season
 - Search, get data and posters from TMDB
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img width="400" alt="profile" src="https://github.com/user-attachments/assets/02b90a19-3a95-49fe-9873-24e3d84764b6" /></td>
+    <td><img width="400" alt="movies" src="https://github.com/user-attachments/assets/d8008992-ce72-4115-994f-d23f2b702779" /></td>
+  </tr>
+  <tr>
+    <td><img width="400" alt="show" src="https://github.com/user-attachments/assets/4b664587-433a-49ff-afb2-a100857c1dda" /></td>
+    <td><img width="400" alt="collections" src="https://github.com/user-attachments/assets/b1c40853-9555-4d2c-852b-ab30033ff13f" /></td>
+  </tr>
+</table>
+
 ## Stack
 
 - Frontend: React, Vite, Tailwind CSS
