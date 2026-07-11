@@ -15,7 +15,7 @@ prod:
 	@echo "Running on $(PROD_URL)"
 
 cloud:
-	PROD_API_URL=$(CLOUD_API_URL) PROD_URL=$(CLOUD_URL) docker compose $(CLOUD) up --build -d
+	docker compose $(CLOUD) up --build -d
 	@echo "Running on $(CLOUD_URL)"
 
 down:

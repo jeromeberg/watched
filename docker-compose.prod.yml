@@ -20,13 +20,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile.prod
     restart: unless-stopped
-    ports:
-      - "3000:3000"
     env_file:
       - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-watched}
-      CORS_ORIGIN: ${PROD_URL:?PROD_URL must be set}
     depends_on:
       db:
         condition: service_healthy
@@ -36,11 +33,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
-      args:
-        VITE_API_URL: ${PROD_API_URL:?PROD_API_URL must be set}
     restart: unless-stopped
     ports:
       - "8080:80"
+    depends_on:
+      - backend
 
 volumes:
   pgdata:

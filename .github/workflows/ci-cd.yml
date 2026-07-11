@@ -55,12 +55,10 @@ jobs:
             context: ./frontend
             dockerfile: ./frontend/Dockerfile.prod
             image: ghcr.io/jeromeberg/watched-frontend
-            buildArgs: VITE_API_URL=${{ vars.PROD_API_URL }}
           - name: backend
             context: ./backend
             dockerfile: ./backend/Dockerfile.prod
             image: ghcr.io/jeromeberg/watched-backend
-            buildArgs: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -79,7 +77,6 @@ jobs:
           file: ${{ matrix.dockerfile }}
           platforms: linux/arm64
           push: true
-          build-args: ${{ matrix.buildArgs }}
           tags: |
             ${{ matrix.image }}:latest
             ${{ matrix.image }}:${{ github.sha }}

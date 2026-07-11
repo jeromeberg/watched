@@ -54,16 +54,12 @@ make prod
 
 Expose the app publicly via [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/).
 
-`CLOUDFLARE_TOKEN`, `CLOUD_URL` and `CLOUD_API_URL` need to be filled in `.env`.  
-
-Both `CLOUD_URL` and `CLOUD_API_URL` override production values when running `make cloud`.
+`CLOUDFLARE_TOKEN` and `CLOUD_URL` need to be filled in `.env`.
 
 ```bash
 # build prod and start tunnel
 make cloud
 ```
-
-⚠️ The API should be exposed on its own domain or **single-level** subdomain (e.g. `api.yourdomain.com`) so it is covered by Cloudflare's SSL certificate.
 
 ### Commands
 
