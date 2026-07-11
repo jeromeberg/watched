@@ -29,7 +29,7 @@ A full-stack movie/TV watchlist app, using the TMDB API.
 - Containerization: Docker, Docker Compose
 - Nginx
 - Networking: Cloudflare Tunnel (optional)
-- CI/CD: GitHub Actions + webhook
+- CI/CD: GitHub Actions, GHCR, webhook
 
 ## Instructions
 
@@ -63,7 +63,7 @@ make cloud
 
 ⚠️ `CLOUDFLARE_TOKEN` and `CLOUD_URL` need to be filled in `.env`.
 
-Optional: if you want to setup auto-deploy (CD) via webhook, create a route to `http://host.docker.internal:9000` that will be your deploy public URL.
+**Optional:** if you want to deploy via webhook, create a route to `http://host.docker.internal:9000` that will be your public deploy URL and follow [deployment setup](#deployment-setup) instructions.
 
 ### Commands
 
@@ -99,10 +99,11 @@ Push to `main` runs checks, builds Docker images, pushes them to GHCR, then auto
 
 **Continuous Deployment (CD)**
 
-- Compute HMAC-SHA256 signature of the payload and send it to [webhook](https://github.com/adnanh/webhook).
+- Compute HMAC-SHA256 signature of the payload and send it to webhook.
 - Production server verifies signature, pulls the new images and restarts production.
+- ⚠️ Without `DEPLOY_WEBHOOK_URL` and `WEBHOOK_SECRET` set, the pipeline still builds and pushes images to GHCR but skips the deploy step.
 
-### Setup
+### Deployment setup
 
 **GitHub**
 
@@ -113,11 +114,11 @@ Add these variables in **Settings → Secrets and variables → Actions**:
 | `DEPLOY_WEBHOOK_URL` | Secret | e.g.: `https://deploy.yourdomain.com/hooks/deploy-watched` |
 | `WEBHOOK_SECRET`     | Secret | Same value as `WEBHOOK_SECRET` in `.env` |
 
-⚠️ Without `DEPLOY_WEBHOOK_URL` and `WEBHOOK_SECRET` set, the pipeline still builds and pushes images to GHCR but skips the deploy step.
-
-To pull private images on the server: create a GHCR PAT (scope: `read:packages`) at [github.com/settings/tokens](https://github.com/settings/tokens) and auth to GHCR using `docker login` and generated PAT (see below).
+**Note:** To pull private images, create a GHCR PAT (scope: `read:packages`) at [github.com/settings/tokens](https://github.com/settings/tokens) and auth to GHCR: `docker login ghcr.io -u <username> -p <PAT>`.
 
 **Production server**
+
+Requires [webhook](https://github.com/adnanh/webhook).
 
 ```bash
 # create dedicated user
@@ -130,9 +131,6 @@ cd /opt/watched
 sudo -u deploy cp .env.example .env
 # fill in .env (WEBHOOK_SECRET must match GitHub secret)
 
-# auth to private GHCR
-sudo -u deploy docker login ghcr.io -u <username> -p <PAT>
-
 # install webhook
 sudo apt update && sudo apt install -y webhook
 sudo cp deploy/webhook.service /etc/systemd/system/webhook.service
@@ -143,18 +141,13 @@ sudo systemctl enable --now webhook.service
 sudo -u deploy make deploy
 ```
 
-### Maintenance
-
-**Logs:**
+**Maintenance**
 
 ```bash
+# logs
 journalctl -u webhook -f
 tail -f /opt/watched/deploy/deploy.log
-```
 
-**Rollback:**
-
-```bash
+# rollback
 make deploy IMAGE_TAG=<commit-sha>
 ```
-
