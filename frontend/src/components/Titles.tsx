@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { Title, MediaType, Filter, MEDIA, mediaTypeOf } from '../types';
 import { GridView, ListView } from './TitlesViews';
 import { pathFor, BasePath } from '../utils/titlesPath';
@@ -7,7 +7,7 @@ import { ViewToggle } from './ViewToggle';
 import { Dropdown } from './Dropdown';
 import { TitleDetailModal } from './TitleDetailModal';
 import { TitleUpdates } from './Detail';
-import { useViewMode } from '../hooks/useViewMode';
+import { useViewMode, ViewMode } from '../hooks/useViewMode';
 import { SortKey, SORTS, sortTitles } from '../utils/titlesSort';
 import { Text } from './Text';
 import { pillClasses } from './Button';
@@ -28,6 +28,10 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'watched', label: '✓ Watched' },
 ];
 
+const DEFAULT_FILTER: Filter = 'all';
+const DEFAULT_SORT: SortKey = 'added_desc';
+const DEFAULT_VIEW: ViewMode = 'grid';
+
 export function Titles({
   type,
   titles,
@@ -38,10 +42,45 @@ export function Titles({
   username,
 }: TitlesProps) {
   const location = useLocation();
-  const [viewMode, setViewMode] = useViewMode(type ?? 'mixed');
-  const [filter, setFilter] = useState<Filter>('all');
-  const [sort, setSort] = useState<SortKey>('added_desc');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [storedViewMode, setStoredViewMode] = useViewMode(type ?? 'mixed');
   const [selected, setSelected] = useState<Title | null>(null);
+
+  const filterParam = searchParams.get('filter');
+  const filter: Filter = FILTERS.some((f) => f.key === filterParam)
+    ? (filterParam as Filter)
+    : DEFAULT_FILTER;
+
+  const sortParam = searchParams.get('sort');
+  const sort: SortKey = SORTS.some((s) => s.key === sortParam) ? (sortParam as SortKey) : DEFAULT_SORT;
+
+  const viewParam = searchParams.get('view');
+  const viewMode: ViewMode = viewParam === 'grid' || viewParam === 'list' ? viewParam : storedViewMode;
+
+  function setParam(key: string, value: string, isDefault: boolean) {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (isDefault) next.delete(key);
+        else next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  }
+
+  function setFilter(f: Filter) {
+    setParam('filter', f, f === DEFAULT_FILTER);
+  }
+
+  function setSort(s: SortKey) {
+    setParam('sort', s, s === DEFAULT_SORT);
+  }
+
+  function setViewMode(v: ViewMode) {
+    setStoredViewMode(v);
+    setParam('view', v, v === DEFAULT_VIEW);
+  }
 
   const filteredTitles =
     filter === 'all'
