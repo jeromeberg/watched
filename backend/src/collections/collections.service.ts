@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -90,13 +90,17 @@ export class CollectionsService {
 
   async remove(userId: number, id: number) {
     await this.assertOwner(userId, id);
-    await this.prisma.collectionItem.deleteMany({ where: { collectionId: id } });
     await this.prisma.collection.delete({ where: { id } });
     return { ok: true };
   }
 
   async addItem(userId: number, collectionId: number, titleId: number) {
     await this.assertOwner(userId, collectionId);
+    const userTitle = await this.prisma.userTitle.findUnique({
+      where: { userId_titleId: { userId, titleId } },
+    });
+    if (!userTitle) throw new BadRequestException('Title is not in your library');
+
     return this.prisma.collectionItem.upsert({
       where: { collectionId_titleId: { collectionId, titleId } },
       create: { collectionId, titleId },

@@ -13,19 +13,13 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
+import {
+  AddCollectionItemDto,
+  CollectionsQueryDto,
+  CreateCollectionDto,
+  UpdateCollectionDto,
+} from './dto/collection.dto';
 import { CollectionsService } from './collections.service';
-
-class CreateCollectionDto {
-  name: string;
-  description?: string;
-}
-class UpdateCollectionDto {
-  name?: string;
-  description?: string | null;
-}
-class AddItemDto {
-  titleId: number;
-}
 
 @Controller('collections')
 @UseGuards(JwtAuthGuard)
@@ -38,8 +32,8 @@ export class CollectionsController {
   }
 
   @Get()
-  findAll(@Req() req: AuthenticatedRequest, @Query('titleId') titleId?: string) {
-    return this.collectionsService.findAll(req.user.id, titleId ? parseInt(titleId, 10) : undefined);
+  findAll(@Req() req: AuthenticatedRequest, @Query() query: CollectionsQueryDto) {
+    return this.collectionsService.findAll(req.user.id, query.titleId);
   }
 
   @Get(':id')
@@ -62,7 +56,11 @@ export class CollectionsController {
   }
 
   @Post(':id/items')
-  addItem(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number, @Body() dto: AddItemDto) {
+  addItem(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddCollectionItemDto,
+  ) {
     return this.collectionsService.addItem(req.user.id, id, dto.titleId);
   }
 

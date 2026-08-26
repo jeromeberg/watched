@@ -1,19 +1,11 @@
 import { Controller, Get, Patch, Param, Query, Body, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { parseTitleListQuery } from '../titles/titles.service';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
 import { UsersService } from './users.service';
 import { titleTypeForRoute } from '../titles/title-route.config';
-
-class UpdateProfileDto {
-  bio?: string | null;
-  topPicks?: number[];
-}
-
-class ChangePasswordDto {
-  currentPassword: string;
-  newPassword: string;
-}
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/profile.dto';
+import { TitleListQueryDto } from '../titles/dto/title-list-query.dto';
 
 @Controller()
 export class UsersController {
@@ -36,15 +28,9 @@ export class UsersController {
   getPublicTitles(
     @Param('username') username: string,
     @Param('library') library: string,
-    @Query('status') status?: string,
-    @Query('order') order?: string,
-    @Query('limit') limit?: string,
+    @Query() query: TitleListQueryDto,
   ) {
-    return this.usersService.getPublicTitles(
-      username,
-      titleTypeForRoute(library),
-      parseTitleListQuery({ status, order, limit }),
-    );
+    return this.usersService.getPublicTitles(username, titleTypeForRoute(library), query);
   }
 
   @Get('users/:username/:library/:id')

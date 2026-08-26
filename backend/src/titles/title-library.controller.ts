@@ -1,7 +1,10 @@
 import { Body, Get, Param, ParseIntPipe, Post, Query, Req } from '@nestjs/common';
 import { TitleType } from '@prisma/client';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
-import { AddTitleDto, parseTitleListQuery, TitlesService } from './titles.service';
+import { AddTitleDto } from './dto/add-title.dto';
+import { SearchTitlesQueryDto } from './dto/search-titles-query.dto';
+import { TitleListQueryDto } from './dto/title-list-query.dto';
+import { TitlesService } from './titles.service';
 
 /** Provide authenticated routes for one configured title type. */
 export abstract class TitleLibraryController {
@@ -12,24 +15,16 @@ export abstract class TitleLibraryController {
 
   /** Search titles for the configured type. */
   @Get('search')
-  search(@Query('q') q: string) {
+  search(@Query() query: SearchTitlesQueryDto) {
+    const { q } = query;
     if (!q?.trim()) return [];
-    return this.titlesService.search(this.titleType, q.trim());
+    return this.titlesService.search(this.titleType, q);
   }
 
   /** List the authenticated user's titles for the configured type. */
   @Get()
-  getMyTitles(
-    @Req() req: AuthenticatedRequest,
-    @Query('status') status?: string,
-    @Query('order') order?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.titlesService.getUserTitles(
-      this.titleType,
-      req.user.id,
-      parseTitleListQuery({ status, order, limit }),
-    );
+  getMyTitles(@Req() req: AuthenticatedRequest, @Query() query: TitleListQueryDto) {
+    return this.titlesService.getUserTitles(this.titleType, req.user.id, query);
   }
 
   /** Add one title of the configured type to the authenticated user's library. */

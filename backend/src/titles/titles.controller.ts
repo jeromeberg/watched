@@ -1,14 +1,8 @@
 import { Controller, Patch, Delete, Param, Body, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import { WatchStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
+import { UpdateUserTitleDto } from './dto/update-user-title.dto';
 import { TitlesService } from './titles.service';
-
-class UpdateUserTitleDto {
-  rating?: number | null;
-  status?: WatchStatus;
-  notes?: string | null;
-}
 
 @Controller('titles')
 @UseGuards(JwtAuthGuard)

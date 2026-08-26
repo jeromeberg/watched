@@ -93,7 +93,7 @@ model CollectionItem {
   titleId      Int
   addedAt      DateTime @default(now())
 
-  collection Collection @relation(fields: [collectionId], references: [id])
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
   title      Title      @relation(fields: [titleId], references: [id])
 
   @@id([collectionId, titleId])

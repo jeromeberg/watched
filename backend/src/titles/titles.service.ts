@@ -1,22 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { TitleType, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService } from '../tmdb/tmdb.service';
-
-export interface AddTitleDto {
-  tmdbId: number;
-  title: string;
-  posterUrl?: string | null;
-  releaseYear?: number | null;
-  director?: string | null;
-  description?: string | null;
-}
-
-interface UpdateUserTitleDto {
-  rating?: number | null;
-  status?: WatchStatus;
-  notes?: string | null;
-}
+import { AddTitleDto } from './dto/add-title.dto';
+import { UpdateUserTitleDto } from './dto/update-user-title.dto';
 
 export interface TitleListOptions {
   status?: WatchStatus;
@@ -26,39 +13,6 @@ export interface TitleListOptions {
 
 // validate query params ?status=&order=&limit=
 // 400 on bad values
-export function parseTitleListQuery(query: {
-  status?: string;
-  order?: string;
-  limit?: string;
-}): TitleListOptions {
-  const opts: TitleListOptions = {};
-
-  if (query.status !== undefined) {
-    const status = query.status.toUpperCase();
-    if (status !== WatchStatus.WATCHED && status !== WatchStatus.TO_WATCH) {
-      throw new BadRequestException('status must be "watched" or "to_watch"');
-    }
-    opts.status = status;
-  }
-
-  if (query.order !== undefined) {
-    if (query.order !== 'rating' && query.order !== 'added') {
-      throw new BadRequestException('order must be "rating" or "added"');
-    }
-    opts.order = query.order;
-  }
-
-  if (query.limit !== undefined) {
-    const limit = Number(query.limit);
-    if (!Number.isInteger(limit) || limit < 1) {
-      throw new BadRequestException('limit must be a positive integer');
-    }
-    opts.limit = limit;
-  }
-
-  return opts;
-}
-
 // shared
 @Injectable()
 export class TitlesService {
@@ -136,12 +90,6 @@ export class TitlesService {
   }
 
   async updateUserTitle(userId: number, titleId: number, updates: UpdateUserTitleDto) {
-    if (updates.rating !== undefined && updates.rating !== null) {
-      if (!Number.isInteger(updates.rating) || updates.rating < 1 || updates.rating > 10) {
-        throw new BadRequestException('Rating must be between 1 and 10');
-      }
-    }
-
     const userTitle = await this.prisma.userTitle.findUnique({
       where: { userId_titleId: { userId, titleId } },
     });
