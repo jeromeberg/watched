@@ -3,15 +3,11 @@ import { TitleType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
 import { TitlesService, parseTitleListQuery, AddTitleDto } from '../titles/titles.service';
-import { ShowsService } from './shows.service';
 
 @Controller('shows')
 @UseGuards(JwtAuthGuard)
 export class ShowsController {
-  constructor(
-    private readonly titlesService: TitlesService,
-    private readonly showsService: ShowsService,
-  ) {}
+  constructor(private readonly titlesService: TitlesService) {}
 
   @Get('search')
   search(@Query('q') q: string) {
@@ -41,15 +37,5 @@ export class ShowsController {
   @Get(':id')
   getShow(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
     return this.titlesService.getUserTitle(TitleType.TV, req.user.id, id);
-  }
-
-  @Get(':id/episodes')
-  getEpisodes(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
-    return this.showsService.getEpisodes(id, req.user.id);
-  }
-
-  @Get(':id/progress')
-  getProgress(@Param('id', ParseIntPipe) id: number, @Req() req: AuthenticatedRequest) {
-    return this.showsService.getProgress(req.user.id, id);
   }
 }

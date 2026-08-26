@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { StarRating } from './Rating';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Title, WatchStatus, MediaType, MEDIA, Season } from '../types';
+import { Title, WatchStatus, MediaType, MEDIA } from '../types';
 import { Text } from './Text';
 import { Button, buttonClasses } from './Button';
-import { ShowSeasons } from './ShowSeasons';
 import { Textarea } from './Textarea';
 import { DeleteModal } from './DeleteModal';
 
@@ -28,7 +27,6 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
     : `/${MEDIA[type].path}/${id}`;
 
   const [title, setTitle] = useState<Title | null>(null);
-  const [seasons, setSeasons] = useState<Season[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
   const [savingRating, setSavingRating] = useState(false);
@@ -39,20 +37,15 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
   useEffect(() => {
     setNotFound(false);
     setTitle(null);
-    setSeasons([]);
-
-    Promise.all([
-      api.get<Title | null>(basePath),
-      type === 'show' ? api.get<Season[]>(`${basePath}/episodes`) : Promise.resolve<Season[]>([]),
-    ])
-      .then(([titleData, seasonData]) => {
+    api
+      .get<Title | null>(basePath)
+      .then((titleData) => {
         if (!titleData) {
           setNotFound(true);
           return;
         }
         setTitle(titleData);
         setLocalNotes(titleData.notes ?? '');
-        setSeasons(seasonData);
       })
       .catch(() => setNotFound(true));
   }, [type, id, basePath]);
@@ -64,10 +57,6 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
   if (!title) {
     return <Text color="subtle">Loading...</Text>;
   }
-
-  const totalEps = seasons.reduce((n, s) => n + s.episodes.length, 0);
-  const watchedEps = seasons.reduce((n, s) => n + s.episodes.filter((e) => e.watched).length, 0);
-  const pct = totalEps > 0 ? Math.round((watchedEps / totalEps) * 100) : 0;
 
   async function handleUpdate(updates: TitleUpdates) {
     await api.patch(`/titles/${titleId}`, updates);
@@ -176,26 +165,6 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
             </a></div>
           )}
 
-      {/* Progress (for shows) */}
-          {type === 'show' && totalEps > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>
-                  {watchedEps} / {totalEps} episodes
-                </span>
-                <span className="font-medium text-white">{pct}%</span>
-              </div>
-              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-full transition-all duration-300"
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-        
-
       {/* Overview */}
       {title.description && (
         <div className="space-y-1.5">
@@ -234,23 +203,6 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
             maxLength={500}
             placeholder="Add a comment..."
             className="text-sm"
-          />
-        </div>
-      )}
-
-      {/* Seasons (for shows) */}
-      {type === 'show' && (
-        <div className="space-y-1.5">
-          <Text variant="label">Episodes</Text>
-
-
-            
-
-          <ShowSeasons
-            key={titleId}
-            seasons={seasons}
-            onSeasonsChange={setSeasons}
-            isOtherUser={isOtherUser}
           />
         </div>
       )}

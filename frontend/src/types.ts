@@ -84,20 +84,3 @@ export const MEDIA: Record<MediaType, { path: string; label: string; noun: strin
 export function mediaTypeOf(type: string): MediaType {
   return type === 'TV' ? 'show' : 'movie';
 }
-
-// --- Shows ---
-
-export interface Episode {
-  id: number;
-  episodeNumber: number;
-  title: string;
-  airDate: string | null;
-  watched: boolean;
-}
-
-export interface Season {
-  id: number;
-  seasonNumber: number;
-  name: string | null;
-  episodes: Episode[];
-}

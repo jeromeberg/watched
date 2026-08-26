@@ -6,7 +6,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { MoviesModule } from './movies/movies.module';
 import { ShowsModule } from './shows/shows.module';
-import { EpisodesModule } from './episodes/episodes.module';
 import { TitlesModule } from './titles/titles.module';
 import { CollectionsModule } from './collections/collections.module';
 import { UsersModule } from './users/users.module';
@@ -18,7 +17,6 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     MoviesModule,
     ShowsModule,
-    EpisodesModule,
     TitlesModule,
     CollectionsModule,
     UsersModule,

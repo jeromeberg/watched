@@ -65,11 +65,6 @@ export class UsersController {
     return this.titlesService.getPublicUserTitle(TitleType.TV, username, id);
   }
 
-  @Get('users/:username/shows/:id/episodes')
-  getPublicEpisodes(@Param('username') username: string, @Param('id', ParseIntPipe) id: number) {
-    return this.usersService.getPublicEpisodes(username, id);
-  }
-
   @Get('users/:username/collections/:collectionId')
   getPublicCollection(
     @Param('username') username: string,

@@ -17,7 +17,6 @@ A full-stack movie/TV watchlist app, using the TMDB API.
 - Filter, sort and view library as grid/list
 - Collections: organize your library
 - Rate titles and add notes
-- TV shows: track episodes per season
 - Search, get data and posters from TMDB
 
 ## Screenshots

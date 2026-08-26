@@ -25,18 +25,6 @@ interface TmdbTvDetails {
   created_by: { name: string }[];
 }
 
-export interface TmdbSeasonSummary {
-  season_number: number;
-  name: string;
-  episode_count: number;
-}
-
-export interface TmdbEpisode {
-  episode_number: number;
-  name: string;
-  air_date: string | null;
-}
-
 @Injectable()
 export class TmdbService {
   private readonly apiKey: string;
@@ -101,16 +89,6 @@ export class TmdbService {
     const data = await this.get<TmdbTvDetails>(`/tv/${tmdbId}`);
     const names = (data.created_by ?? []).map((c) => c.name);
     return names.length > 0 ? names.join(', ') : null;
-  }
-
-  async getTvSeasons(tmdbId: number): Promise<TmdbSeasonSummary[]> {
-    const data = await this.get<{ seasons: TmdbSeasonSummary[] }>(`/tv/${tmdbId}`);
-    return data.seasons ?? [];
-  }
-
-  async getSeasonEpisodes(tmdbId: number, seasonNumber: number): Promise<TmdbEpisode[]> {
-    const data = await this.get<{ episodes: TmdbEpisode[] }>(`/tv/${tmdbId}/season/${seasonNumber}`);
-    return data.episodes ?? [];
   }
 
   async getMovieImdbId(tmdbId: number): Promise<string | null> {

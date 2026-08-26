@@ -3,7 +3,6 @@ import { TitleType, WatchStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { TitlesService } from '../titles/titles.service';
-import { ShowsService } from '../shows/shows.service';
 import { CollectionsService } from '../collections/collections.service';
 
 const PROFILE_TITLES_LIMIT = 10;
@@ -13,7 +12,6 @@ export class UsersService {
   constructor(
     private prisma: PrismaService,
     private titlesService: TitlesService,
-    private showsService: ShowsService,
     private collectionsService: CollectionsService,
   ) {}
 
@@ -70,11 +68,6 @@ export class UsersService {
   async getPublicCollection(username: string, collectionId: number) {
     const user = await this.prisma.findUserByUsernameOrThrow(username);
     return this.collectionsService.findOne(user.id, collectionId);
-  }
-
-  async getPublicEpisodes(username: string, titleId: number) {
-    const user = await this.prisma.findUserByUsernameOrThrow(username);
-    return this.showsService.getEpisodes(titleId, user.id);
   }
 
   async updateProfile(userId: number, bio?: string | null, topPicks?: number[]) {
