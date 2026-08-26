@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, UnauthorizedExcepti
 import { TitleType, WatchStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
-import { TitlesService } from '../titles/titles.service';
+import { TitleListOptions, TitlesService } from '../titles/titles.service';
 import { CollectionsService } from '../collections/collections.service';
 
 const PROFILE_TITLES_LIMIT = 10;
@@ -39,11 +39,11 @@ export class UsersService {
     if (!user) throw new NotFoundException('User not found');
 
     const [movies, shows] = await Promise.all([
-      this.titlesService.getPublicUserTitlesByUserId(TitleType.MOVIE, user.id, {
+      this.titlesService.getUserTitles(TitleType.MOVIE, user.id, {
         status: WatchStatus.WATCHED,
         limit: PROFILE_TITLES_LIMIT,
       }),
-      this.titlesService.getPublicUserTitlesByUserId(TitleType.TV, user.id, {
+      this.titlesService.getUserTitles(TitleType.TV, user.id, {
         status: WatchStatus.WATCHED,
         limit: PROFILE_TITLES_LIMIT,
       }),
@@ -66,8 +66,27 @@ export class UsersService {
   }
 
   async getPublicCollection(username: string, collectionId: number) {
-    const user = await this.prisma.findUserByUsernameOrThrow(username);
+    const user = await this.findUserByUsernameOrThrow(username);
     return this.collectionsService.findOne(user.id, collectionId);
+  }
+
+  /** List public titles after resolving their owner. */
+  async getPublicTitles(username: string, type: TitleType, opts: TitleListOptions) {
+    const user = await this.findUserByUsernameOrThrow(username);
+    return this.titlesService.getUserTitles(type, user.id, opts);
+  }
+
+  /** Return one public title after resolving its owner. */
+  async getPublicTitle(username: string, type: TitleType, titleId: number) {
+    const user = await this.findUserByUsernameOrThrow(username);
+    return this.titlesService.getUserTitle(type, user.id, titleId);
+  }
+
+  /** Find a user by username or report that the public resource does not exist. */
+  async findUserByUsernameOrThrow(username: string) {
+    const user = await this.prisma.user.findUnique({ where: { username } });
+    if (!user) throw new NotFoundException('User not found');
+    return user;
   }
 
   async updateProfile(userId: number, bio?: string | null, topPicks?: number[]) {

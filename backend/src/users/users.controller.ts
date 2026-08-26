@@ -1,9 +1,9 @@
 import { Controller, Get, Patch, Param, Query, Body, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
-import { TitleType } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { TitlesService, parseTitleListQuery } from '../titles/titles.service';
+import { parseTitleListQuery } from '../titles/titles.service';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
 import { UsersService } from './users.service';
+import { titleTypeForRoute } from '../titles/title-route.config';
 
 class UpdateProfileDto {
   bio?: string | null;
@@ -17,52 +17,11 @@ class ChangePasswordDto {
 
 @Controller()
 export class UsersController {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly titlesService: TitlesService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Get('users/:username/public')
   getPublicProfile(@Param('username') username: string) {
     return this.usersService.getPublicProfile(username);
-  }
-
-  @Get('users/:username/movies')
-  getPublicMovies(
-    @Param('username') username: string,
-    @Query('status') status?: string,
-    @Query('order') order?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.titlesService.getPublicUserTitles(
-      TitleType.MOVIE,
-      username,
-      parseTitleListQuery({ status, order, limit }),
-    );
-  }
-
-  @Get('users/:username/shows')
-  getPublicShows(
-    @Param('username') username: string,
-    @Query('status') status?: string,
-    @Query('order') order?: string,
-    @Query('limit') limit?: string,
-  ) {
-    return this.titlesService.getPublicUserTitles(
-      TitleType.TV,
-      username,
-      parseTitleListQuery({ status, order, limit }),
-    );
-  }
-
-  @Get('users/:username/movies/:id')
-  getPublicMovie(@Param('username') username: string, @Param('id', ParseIntPipe) id: number) {
-    return this.titlesService.getPublicUserTitle(TitleType.MOVIE, username, id);
-  }
-
-  @Get('users/:username/shows/:id')
-  getPublicShow(@Param('username') username: string, @Param('id', ParseIntPipe) id: number) {
-    return this.titlesService.getPublicUserTitle(TitleType.TV, username, id);
   }
 
   @Get('users/:username/collections/:collectionId')
@@ -71,6 +30,30 @@ export class UsersController {
     @Param('collectionId', ParseIntPipe) collectionId: number,
   ) {
     return this.usersService.getPublicCollection(username, collectionId);
+  }
+
+  @Get('users/:username/:library')
+  getPublicTitles(
+    @Param('username') username: string,
+    @Param('library') library: string,
+    @Query('status') status?: string,
+    @Query('order') order?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.usersService.getPublicTitles(
+      username,
+      titleTypeForRoute(library),
+      parseTitleListQuery({ status, order, limit }),
+    );
+  }
+
+  @Get('users/:username/:library/:id')
+  getPublicTitle(
+    @Param('username') username: string,
+    @Param('library') library: string,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.usersService.getPublicTitle(username, titleTypeForRoute(library), id);
   }
 
   @Patch('me/profile')

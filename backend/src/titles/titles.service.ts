@@ -135,20 +135,6 @@ export class TitlesService {
     return this.mergeUserTitle(row);
   }
 
-  async getPublicUserTitles(type: TitleType, username: string, opts: TitleListOptions = {}) {
-    const user = await this.prisma.findUserByUsernameOrThrow(username);
-    return this.getPublicUserTitlesByUserId(type, user.id, opts);
-  }
-
-  async getPublicUserTitlesByUserId(type: TitleType, userId: number, opts: TitleListOptions = {}) {
-    return this.getUserTitles(type, userId, opts);
-  }
-
-  async getPublicUserTitle(type: TitleType, username: string, titleId: number) {
-    const user = await this.prisma.findUserByUsernameOrThrow(username);
-    return this.getUserTitle(type, user.id, titleId);
-  }
-
   async updateUserTitle(userId: number, titleId: number, updates: UpdateUserTitleDto) {
     if (updates.rating !== undefined && updates.rating !== null) {
       if (!Number.isInteger(updates.rating) || updates.rating < 1 || updates.rating > 10) {
