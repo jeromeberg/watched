@@ -71,8 +71,6 @@ export interface SearchResult {
   title: string;
   posterUrl: string | null;
   releaseYear: number | null;
-  director: string | null;
-  description: string | null;
 }
 
 export const MEDIA: Record<MediaType, { path: string; label: string; noun: string }> = {

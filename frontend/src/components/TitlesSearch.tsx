@@ -40,11 +40,6 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
     try {
       const added = await api.post<Title>(`/${MEDIA[type].path}`, {
         tmdbId: result.tmdbId,
-        title: result.title,
-        posterUrl: result.posterUrl,
-        releaseYear: result.releaseYear,
-        director: result.director,
-        description: result.description,
       });
       onAdd(added);
     } catch (err) {
@@ -105,9 +100,6 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
                     </Text>
                     <Text size="xs" color="muted">
                       {result.releaseYear ?? '—'}
-                    </Text>
-                    <Text size="xs" color="muted">
-                      {result.director ?? '—'}
                     </Text>
                     <button
                       onClick={() => !added && handleAdd(result)}

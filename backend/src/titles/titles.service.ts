@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { TitleType, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService } from '../tmdb/tmdb.service';
@@ -16,8 +16,6 @@ export interface TitleListOptions {
 // shared
 @Injectable()
 export class TitlesService {
-  private readonly logger = new Logger(TitlesService.name);
-
   constructor(
     private prisma: PrismaService,
     private tmdb: TmdbService,
@@ -28,32 +26,30 @@ export class TitlesService {
   }
 
   async addTitle(type: TitleType, userId: number, dto: AddTitleDto) {
-    let imdbId: string | null = null;
-    try {
-      imdbId =
-        type === TitleType.MOVIE
-          ? await this.tmdb.getMovieImdbId(dto.tmdbId)
-          : await this.tmdb.getTvImdbId(dto.tmdbId);
-    } catch (err) {
-      this.logger.warn(`Failed to fetch IMDb id for tmdbId=${dto.tmdbId} type=${type}: ${err}`);
-    }
+    const metadata =
+      type === TitleType.MOVIE
+        ? await this.tmdb.getMovieDetails(dto.tmdbId)
+        : await this.tmdb.getTvDetails(dto.tmdbId);
 
     const title = await this.prisma.title.upsert({
       where: { tmdbId_type: { tmdbId: dto.tmdbId, type } },
       create: {
-        tmdbId: dto.tmdbId,
+        tmdbId: metadata.tmdbId,
         type,
-        title: dto.title,
-        posterUrl: dto.posterUrl ?? null,
-        releaseYear: dto.releaseYear ?? null,
-        imdbId,
-        director: dto.director ?? null,
-        description: dto.description ?? null,
+        title: metadata.title,
+        posterUrl: metadata.posterUrl,
+        releaseYear: metadata.releaseYear,
+        imdbId: metadata.imdbId,
+        director: metadata.director,
+        description: metadata.description,
       },
       update: {
-        ...(imdbId ? { imdbId } : {}),
-        ...(dto.director ? { director: dto.director } : {}),
-        ...(dto.description ? { description: dto.description } : {}),
+        title: metadata.title,
+        posterUrl: metadata.posterUrl,
+        releaseYear: metadata.releaseYear,
+        imdbId: metadata.imdbId,
+        director: metadata.director,
+        description: metadata.description,
       },
     });
 

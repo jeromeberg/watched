@@ -21,15 +21,13 @@ describe('validated DTOs', () => {
   });
 
   it('rejects invalid add-title fields', async () => {
-    await expect(validate({ tmdbId: '0', title: 'Example' }, AddTitleDto, 'body')).rejects.toBeInstanceOf(
-      BadRequestException,
-    );
+    await expect(validate({ tmdbId: '0' }, AddTitleDto, 'body')).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('rejects unknown fields', async () => {
-    await expect(
-      validate({ tmdbId: '7', title: 'Example', extra: true }, AddTitleDto, 'body'),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(validate({ tmdbId: '7', title: 'Example' }, AddTitleDto, 'body')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
   });
 
   it('transforms lowercase title-list status and numeric limit', async () => {
