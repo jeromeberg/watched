@@ -1,6 +1,6 @@
 import { ButtonHTMLAttributes } from 'react';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerOutline' | 'yellow';
+export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'dangerOutline';
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'full';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -13,7 +13,6 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'bg-[var(--color-danger-strong)] hover:bg-[var(--color-danger-strong-hover)] text-white font-medium disabled:opacity-50',
   dangerOutline:
     'text-[var(--color-danger)] hover:text-[var(--color-danger-hover)] border border-[var(--color-danger-border)] hover:border-[var(--color-danger-border-hover)]',
-  yellow: 'bg-[#F5C518] hover:bg-[#E4B613] text-black font-bold text-xs',
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

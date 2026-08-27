@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { WatchStatus, MediaType } from '../types';
 import { TitleUpdates, useTitleDetail } from '../hooks/useTitleDetail';
 import { Text } from './Text';
-import { Button, buttonClasses } from './Button';
+import { Button } from './Button';
 import { Textarea } from './Textarea';
 import { DeleteModal } from './DeleteModal';
 import { ErrorMessage } from './ErrorMessage';
@@ -124,7 +124,7 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
             href={`https://www.imdb.com/title/${title.imdbId}/`}
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonClasses('yellow', 'xs', 'inline-block')}
+            className="inline-block rounded-sm bg-[#F5C518] px-2 py-1 text-xs font-bold text-black transition-colors hover:bg-[#E4B613]"
           >
             IMDb
           </a>
