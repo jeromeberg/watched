@@ -6,12 +6,13 @@ import { CollectionFormModal } from '../components/CollectionFormModal';
 import { AddTitleModal } from '../components/AddTitleModal';
 import { DeleteModal } from '../components/DeleteModal';
 import { Button, buttonClasses } from '../components/Button';
+import { ErrorMessage } from '../components/ErrorMessage';
 import { Text, textClasses } from '../components/Text';
 import { Titles } from '../components/Titles';
 import { TitleUpdates } from '../hooks/useTitleDetail';
 import { useAuth } from '../context/AuthContext';
 import { CollectionDetail, CollectionItem, CollectionTitle, LibraryTitle } from '../types';
-import { api } from '../api/client';
+import { api, getErrorMessage, isAbortError } from '../api/client';
 
 /** Flatten one collection item for the shared library-title list UI. */
 function titleListItem(item: CollectionItem): LibraryTitle {
@@ -25,6 +26,12 @@ function collectionTitleOf(title: LibraryTitle): CollectionTitle {
   return collectionTitle;
 }
 
+interface CollectionReadState {
+  key: string;
+  collection: CollectionDetail | null;
+  error: string;
+}
+
 export function CollectionDetailPage() {
   const { username, id } = useParams<{ username?: string; id: string }>();
   const { user } = useAuth();
@@ -33,14 +40,43 @@ export function CollectionDetailPage() {
   const basePath = isOtherUser ? `/users/${username}/collections/${id}` : `/collections/${id}`;
   const moviesPath = isOtherUser ? `/u/${username}/movies` : '/movies';
   const showsPath = isOtherUser ? `/u/${username}/shows` : '/shows';
-  const [collection, setCollection] = useState<CollectionDetail | null>(null);
+  const [readState, setReadState] = useState<CollectionReadState>({
+    key: '',
+    collection: null,
+    error: '',
+  });
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [pendingRemoveItem, setPendingRemoveItem] = useState<LibraryTitle | null>(null);
+  const loading = readState.key !== basePath;
+  const collection = loading ? null : readState.collection;
+  const error = loading ? '' : readState.error;
 
   useEffect(() => {
-    api.get<CollectionDetail>(basePath).then(setCollection).catch(console.error);
+    const controller = new AbortController();
+    api
+      .get<CollectionDetail>(basePath, { signal: controller.signal })
+      .then((loadedCollection) => {
+        if (!controller.signal.aborted) {
+          setReadState({ key: basePath, collection: loadedCollection, error: '' });
+          setShowEdit(false);
+          setShowAdd(false);
+          setShowDelete(false);
+          setPendingRemoveItem(null);
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (!isAbortError(requestError)) {
+          setReadState({
+            key: basePath,
+            collection: null,
+            error: getErrorMessage(requestError, 'Could not load collection'),
+          });
+        }
+      });
+    return () => controller.abort();
   }, [basePath]);
 
   async function handleEdit(name: string, description: string) {
@@ -48,8 +84,17 @@ export function CollectionDetailPage() {
       name,
       description,
     });
-    setCollection((prev) =>
-      prev ? { ...prev, name: updated.name, description: updated.description } : prev,
+    setReadState((previous) =>
+      previous.key === basePath && previous.collection
+        ? {
+            ...previous,
+            collection: {
+              ...previous.collection,
+              name: updated.name,
+              description: updated.description,
+            },
+          }
+        : previous,
     );
   }
 
@@ -59,40 +104,54 @@ export function CollectionDetailPage() {
   }
 
   function handleTitleUpdate(id: number, updates: TitleUpdates) {
-    setCollection((prev) =>
-      prev
+    setReadState((previous) =>
+      previous.key === basePath && previous.collection
         ? {
-            ...prev,
-            items: prev.items.map((i) =>
-              i.titleId === id ? { ...i, title: { ...i.title, ...updates } } : i,
-            ),
+            ...previous,
+            collection: {
+              ...previous.collection,
+              items: previous.collection.items.map((item) =>
+                item.titleId === id ? { ...item, title: { ...item.title, ...updates } } : item,
+              ),
+            },
           }
-        : prev,
+        : previous,
     );
   }
 
   function handleItemAdded(title: LibraryTitle) {
-    setCollection((prev) =>
-      prev
+    setReadState((previous) =>
+      previous.key === basePath && previous.collection
         ? {
-            ...prev,
-            items: [
-              ...prev.items,
-              {
-                collectionId: prev.id,
-                titleId: title.id,
-                addedAt: new Date().toISOString(),
-                title: collectionTitleOf(title),
-              },
-            ],
+            ...previous,
+            collection: {
+              ...previous.collection,
+              items: [
+                ...previous.collection.items,
+                {
+                  collectionId: previous.collection.id,
+                  titleId: title.id,
+                  addedAt: new Date().toISOString(),
+                  title: collectionTitleOf(title),
+                },
+              ],
+            },
           }
-        : prev,
+        : previous,
     );
   }
 
   function handleItemRemoved(titleId: number) {
-    setCollection((prev) =>
-      prev ? { ...prev, items: prev.items.filter((i) => i.titleId !== titleId) } : prev,
+    setReadState((previous) =>
+      previous.key === basePath && previous.collection
+        ? {
+            ...previous,
+            collection: {
+              ...previous.collection,
+              items: previous.collection.items.filter((item) => item.titleId !== titleId),
+            },
+          }
+        : previous,
     );
   }
 
@@ -101,11 +160,21 @@ export function CollectionDetailPage() {
     handleItemRemoved(titleId);
   }
 
-  if (!collection) {
+  if (loading) {
     return (
       <Layout>
         <main className="max-w-5xl mx-auto px-6 py-8">
           <Text color="subtle">Loading...</Text>
+        </main>
+      </Layout>
+    );
+  }
+
+  if (error || !collection) {
+    return (
+      <Layout>
+        <main className="max-w-5xl mx-auto px-6 py-8">
+          <ErrorMessage>{error || 'Collection not found'}</ErrorMessage>
         </main>
       </Layout>
     );

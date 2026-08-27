@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client';
+import { api, getErrorMessage, isAbortError } from '../api/client';
 import { useDebounce } from '../hooks/useDebounce';
 import { LibraryTitle, SearchResult, MediaType, MEDIA } from '../types';
 import { Poster } from './Poster';
 import { Text } from './Text';
 import { Input } from './Input';
+import { ErrorMessage } from './ErrorMessage';
 
 interface TitlesSearchProps {
   type: MediaType;
@@ -12,30 +13,61 @@ interface TitlesSearchProps {
   onAdd: (title: LibraryTitle) => void;
 }
 
+interface SearchReadState {
+  key: string;
+  results: SearchResult[];
+  error: string;
+}
+
 export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [fetching, setFetching] = useState(false);
+  const [readState, setReadState] = useState<SearchReadState>({ key: '', results: [], error: '' });
+  const [addFailure, setAddFailure] = useState<{ key: string; message: string } | null>(null);
   const [adding, setAdding] = useState<Set<number>>(new Set());
 
   const debouncedQuery = useDebounce(query, 400);
   const trimmedQuery = debouncedQuery.trim();
+  const currentQuery = query.trim();
+  const waitingForDebounce = currentQuery !== trimmedQuery;
+  const searchKey = `${type}:${trimmedQuery}`;
+  const currentSearchKey = `${type}:${currentQuery}`;
+  const hasCurrentResponse = !waitingForDebounce && readState.key === searchKey;
+  const results = hasCurrentResponse ? readState.results : [];
+  const fetching = !!currentQuery && !hasCurrentResponse;
+  const searchError = hasCurrentResponse ? readState.error : '';
+  const addError = addFailure?.key === currentSearchKey ? addFailure.message : '';
   const myTmdbIds = new Set(titles.map((t) => t.tmdbId));
 
   useEffect(() => {
-    if (!trimmedQuery) {
-      setResults([]);
+    const controller = new AbortController();
+    if (!trimmedQuery || waitingForDebounce) {
       return;
     }
-    setFetching(true);
     api
-      .get<SearchResult[]>(`/${MEDIA[type].path}/search?q=${encodeURIComponent(trimmedQuery)}`)
-      .then(setResults)
-      .catch(console.error)
-      .finally(() => setFetching(false));
-  }, [trimmedQuery, type]);
+      .get<SearchResult[]>(`/${MEDIA[type].path}/search?q=${encodeURIComponent(trimmedQuery)}`, {
+        signal: controller.signal,
+      })
+      .then((searchResults) => {
+        if (!controller.signal.aborted) {
+          setReadState({ key: searchKey, results: searchResults, error: '' });
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (!isAbortError(requestError)) {
+          setReadState({
+            key: searchKey,
+            results: [],
+            error: getErrorMessage(requestError, 'Search failed'),
+          });
+        }
+      });
+    return () => controller.abort();
+  }, [searchKey, trimmedQuery, type, waitingForDebounce]);
 
   async function handleAdd(result: SearchResult) {
+    const mutationKey = currentSearchKey;
+    setAddFailure(null);
     setAdding((prev) => new Set(prev).add(result.tmdbId));
     try {
       const added = await api.post<LibraryTitle>(`/${MEDIA[type].path}`, {
@@ -43,7 +75,7 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
       });
       onAdd(added);
     } catch (err) {
-      console.error(err);
+      setAddFailure({ key: mutationKey, message: getErrorMessage(err, 'Could not add this title') });
     } finally {
       setAdding((prev) => {
         const next = new Set(prev);
@@ -78,14 +110,18 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
         )}
       </div>
 
-      {trimmedQuery && (
+      {currentQuery && (
         <section>
+          {addError && <ErrorMessage>{addError}</ErrorMessage>}
+          {searchError && <ErrorMessage>{searchError}</ErrorMessage>}
           <Text as="h2" color="muted" className="mb-4">
             {fetching
               ? 'Searching...'
-              : results.length === 0
-                ? `No results for "${trimmedQuery}"`
-                : `Results for "${trimmedQuery}"`}
+              : searchError
+                ? 'Search failed'
+                : results.length === 0
+                  ? `No results for "${currentQuery}"`
+                  : `Results for "${currentQuery}"`}
           </Text>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
             {results.map((result) => {

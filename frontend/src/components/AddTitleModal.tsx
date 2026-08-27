@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { api } from '../api/client';
+import { api, getErrorMessage, isAbortError } from '../api/client';
 import { LibraryTitle } from '../types';
 import { Modal } from './Modal';
 import { Text } from './Text';
 import { Input } from './Input';
 import { SmallPoster } from './Poster';
+import { ErrorMessage } from './ErrorMessage';
 
 interface AddTitleModalProps {
   collectionId: number;
@@ -22,13 +23,34 @@ export function AddTitleModal({
   onClose,
 }: AddTitleModalProps) {
   const [allTitles, setAllTitles] = useState<LibraryTitle[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [search, setSearch] = useState('');
   const [toggling, setToggling] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    api.getMyLibrary().then(setAllTitles).catch(console.error);
-    setTimeout(() => inputRef.current?.focus(), 50);
+    const controller = new AbortController();
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 50);
+    api
+      .getMyLibrary({ signal: controller.signal })
+      .then((titles) => {
+        if (!controller.signal.aborted) setAllTitles(titles);
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (!isAbortError(requestError)) {
+          setLoadError(getErrorMessage(requestError, 'Could not load your library'));
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => {
+      controller.abort();
+      window.clearTimeout(focusTimer);
+    };
   }, []);
 
   const filtered = search.trim()
@@ -37,6 +59,7 @@ export function AddTitleModal({
 
   async function toggle(title: LibraryTitle) {
     const inCollection = existingTitleIds.has(title.id);
+    setActionError('');
     setToggling((prev) => new Set(prev).add(title.id));
     try {
       if (inCollection) {
@@ -47,7 +70,7 @@ export function AddTitleModal({
         onAdd(title);
       }
     } catch (err) {
-      console.error(err);
+      setActionError(getErrorMessage(err, 'Could not update this collection'));
     } finally {
       setToggling((prev) => {
         const n = new Set(prev);
@@ -87,9 +110,18 @@ export function AddTitleModal({
 
       {/* List */}
       <div className="overflow-y-auto flex-1">
-        {allTitles.length === 0 ? (
+        {actionError && <ErrorMessage>{actionError}</ErrorMessage>}
+        {loading ? (
           <Text color="subtle" className="p-5">
             Loading your library...
+          </Text>
+        ) : loadError ? (
+          <div className="p-5">
+            <ErrorMessage>{loadError}</ErrorMessage>
+          </div>
+        ) : allTitles.length === 0 ? (
+          <Text color="subtle" className="p-5">
+            Your library is empty.
           </Text>
         ) : filtered.length === 0 ? (
           <Text color="subtle" className="p-5">

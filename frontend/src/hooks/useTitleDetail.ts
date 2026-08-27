@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../api/client';
+import { ApiError, api, getErrorMessage, isAbortError } from '../api/client';
 import { LibraryTitle, MEDIA, MediaType, WatchStatus } from '../types';
 
 export type TitleUpdates = Partial<Pick<LibraryTitle, 'rating' | 'status' | 'notes'>>;
@@ -11,6 +11,13 @@ interface UseTitleDetailOptions {
   isOtherUser: boolean;
   onUpdate?: (id: number, updates: TitleUpdates) => void;
   onRemove?: (id: number) => void;
+}
+
+interface TitleReadState {
+  key: string;
+  title: LibraryTitle | null;
+  notFound: boolean;
+  error: string;
 }
 
 /** Load one library title and manage its persisted user fields. */
@@ -26,65 +33,122 @@ export function useTitleDetail({
   const basePath = isOtherUser
     ? `/users/${username}/${MEDIA[type].path}/${id}`
     : `/${MEDIA[type].path}/${id}`;
-  const [title, setTitle] = useState<LibraryTitle | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
-  const [savingRating, setSavingRating] = useState(false);
+  const [readState, setReadState] = useState<TitleReadState>({
+    key: '',
+    title: null,
+    notFound: false,
+    error: '',
+  });
+  const [mutationFailure, setMutationFailure] = useState<{ key: string; message: string } | null>(null);
+  const [savingStatusFor, setSavingStatusFor] = useState<string | null>(null);
+  const [savingRatingFor, setSavingRatingFor] = useState<string | null>(null);
+  const loading = readState.key !== basePath;
+  const title = loading ? null : readState.title;
+  const notFound = !loading && readState.notFound;
+  const loadError = loading ? '' : readState.error;
+  const mutationError = mutationFailure?.key === basePath ? mutationFailure.message : '';
+  const savingStatus = savingStatusFor === basePath;
+  const savingRating = savingRatingFor === basePath;
 
   useEffect(() => {
-    setNotFound(false);
-    setTitle(null);
+    const controller = new AbortController();
     api
-      .get<LibraryTitle | null>(basePath)
+      .get<LibraryTitle | null>(basePath, { signal: controller.signal })
       .then((titleData) => {
+        if (controller.signal.aborted) return;
         if (!titleData) {
-          setNotFound(true);
+          setReadState({ key: basePath, title: null, notFound: true, error: '' });
           return;
         }
-        setTitle(titleData);
+        setReadState({ key: basePath, title: titleData, notFound: false, error: '' });
       })
-      .catch(() => setNotFound(true));
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isAbortError(requestError)) return;
+        if (requestError instanceof ApiError && requestError.status === 404) {
+          setReadState({ key: basePath, title: null, notFound: true, error: '' });
+          return;
+        }
+        setReadState({
+          key: basePath,
+          title: null,
+          notFound: false,
+          error: getErrorMessage(requestError, 'Could not load title'),
+        });
+      });
+    return () => controller.abort();
   }, [basePath]);
 
   async function updateTitle(updates: TitleUpdates) {
-    await api.patch(`/titles/${titleId}`, updates);
-    setTitle((previous) => (previous ? { ...previous, ...updates } : previous));
-    onUpdate?.(titleId, updates);
+    const mutationKey = basePath;
+    setMutationFailure(null);
+    try {
+      await api.patch(`/titles/${titleId}`, updates);
+      setReadState((previous) =>
+        previous.key === mutationKey && previous.title
+          ? { ...previous, title: { ...previous.title, ...updates } }
+          : previous,
+      );
+      onUpdate?.(titleId, updates);
+    } catch (error) {
+      setMutationFailure({ key: mutationKey, message: getErrorMessage(error, 'Could not update title') });
+      throw error;
+    }
   }
 
   async function updateStatus(status: WatchStatus) {
     if (status === title?.status) return;
-    setSavingStatus(true);
+    const mutationKey = basePath;
+    setSavingStatusFor(mutationKey);
     try {
       await updateTitle({ status });
+    } catch {
+      return;
     } finally {
-      setSavingStatus(false);
+      setSavingStatusFor((current) => (current === mutationKey ? null : current));
     }
   }
 
   async function updateRating(rating: number | null) {
-    setSavingRating(true);
+    const mutationKey = basePath;
+    setSavingRatingFor(mutationKey);
     try {
       await updateTitle({ rating });
+    } catch {
+      return;
     } finally {
-      setSavingRating(false);
+      setSavingRatingFor((current) => (current === mutationKey ? null : current));
     }
   }
 
   async function updateNotes(notes: string | null): Promise<boolean> {
     if (notes === title?.notes) return false;
-    await updateTitle({ notes });
-    return true;
+    try {
+      await updateTitle({ notes });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async function deleteTitle() {
-    await api.delete(`/titles/${titleId}`);
-    onRemove?.(titleId);
+    const mutationKey = basePath;
+    setMutationFailure(null);
+    try {
+      await api.delete(`/titles/${titleId}`);
+      onRemove?.(titleId);
+    } catch (error) {
+      setMutationFailure({ key: mutationKey, message: getErrorMessage(error, 'Could not remove title') });
+      throw error;
+    }
   }
 
   return {
     title,
+    loading,
     notFound,
+    loadError,
+    mutationError,
     savingStatus,
     savingRating,
     updateStatus,

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { api } from '../api/client';
+import { api, getErrorMessage } from '../api/client';
 import { LibraryTitle, PublicProfile } from '../types';
 import { Poster } from './Poster';
 import { Button } from './Button';
 import { Text } from './Text';
+import { ErrorMessage } from './ErrorMessage';
 
 interface ProfilePicksProps {
   username: string;
@@ -16,21 +17,30 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
   const [editing, setEditing] = useState(false);
   const [allTitles, setAllTitles] = useState<LibraryTitle[]>([]);
   const [picks, setPicks] = useState<LibraryTitle[]>([]);
+  const [loadingLibrary, setLoadingLibrary] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<{ index: number; side: 'before' | 'after' } | null>(null);
 
   async function startEditing() {
-    // The picker needs the full library; only fetched when entering edit mode.
-    const combined = await api.getMyLibrary();
-    setAllTitles(combined);
-    setPicks(
-      [...topPicks]
-        .sort((a, b) => a.rank - b.rank)
-        .map((p) => combined.find((t) => t.id === p.title.id))
-        .filter((t): t is LibraryTitle => t !== undefined),
-    );
-    setEditing(true);
+    setLoadingLibrary(true);
+    setError('');
+    try {
+      const combined = await api.getMyLibrary();
+      setAllTitles(combined);
+      setPicks(
+        [...topPicks]
+          .sort((a, b) => a.rank - b.rank)
+          .map((p) => combined.find((t) => t.id === p.title.id))
+          .filter((t): t is LibraryTitle => t !== undefined),
+      );
+      setEditing(true);
+    } catch (requestError) {
+      setError(getErrorMessage(requestError, 'Could not load your library'));
+    } finally {
+      setLoadingLibrary(false);
+    }
   }
 
   function togglePick(title: LibraryTitle) {
@@ -52,13 +62,14 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
 
   async function handleSave() {
     setSaving(true);
+    setError('');
     try {
       await api.patch('/me/profile', { topPicks: picks.map((p) => p.id) });
       const updated = await api.get<PublicProfile>(`/users/${username}/public`);
       onSaved(updated.topPicks);
       setEditing(false);
     } catch (err) {
-      console.error(err);
+      setError(getErrorMessage(err, 'Could not save top picks'));
     } finally {
       setSaving(false);
     }
@@ -78,11 +89,13 @@ export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: Prof
               {picks.length}/5 selected
             </Text>
           ) : (
-            <Button variant="secondary" onClick={startEditing}>
-              Edit picks
+            <Button variant="secondary" onClick={startEditing} disabled={loadingLibrary}>
+              {loadingLibrary ? 'Loading...' : 'Edit picks'}
             </Button>
           ))}
       </div>
+
+      {error && <ErrorMessage>{error}</ErrorMessage>}
 
       {editing ? (
         <>

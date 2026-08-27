@@ -5,14 +5,34 @@ import { CollectionsGrid } from '../components/CollectionsGrid';
 import { CollectionSummary } from '../types';
 import { api } from '../api/client';
 import { Button } from '../components/Button';
+import { ErrorMessage } from '../components/ErrorMessage';
 import { Text } from '../components/Text';
+import { getErrorMessage, isAbortError } from '../api/client';
 
 export function CollectionsPage() {
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    api.get<CollectionSummary[]>('/collections').then(setCollections).catch(console.error);
+    const controller = new AbortController();
+    api
+      .get<CollectionSummary[]>('/collections', { signal: controller.signal })
+      .then((loadedCollections) => {
+        if (!controller.signal.aborted) {
+          setCollections(loadedCollections);
+          setLoading(false);
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (!isAbortError(requestError)) {
+          setError(getErrorMessage(requestError, 'Could not load collections'));
+          setLoading(false);
+        }
+      });
+    return () => controller.abort();
   }, []);
 
   async function handleCreate(name: string, description: string) {
@@ -35,7 +55,11 @@ export function CollectionsPage() {
           </Button>
         </div>
 
-        {collections.length === 0 ? (
+        {loading ? (
+          <Text color="subtle">Loading...</Text>
+        ) : error ? (
+          <ErrorMessage>{error}</ErrorMessage>
+        ) : collections.length === 0 ? (
           <Text color="subtle">No collections yet. Create one to organise your library.</Text>
         ) : (
           <CollectionsGrid collections={collections} basePath="/collections" />

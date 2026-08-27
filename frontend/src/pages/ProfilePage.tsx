@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { api } from '../api/client';
+import { ApiError, api, getErrorMessage, isAbortError } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import { PublicProfile, MediaType, MEDIA } from '../types';
 import { GridView } from '../components/TitlesViews';
@@ -12,47 +12,93 @@ import { TitleDetailModal } from '../components/TitleDetailModal';
 import { Button, buttonClasses } from '../components/Button';
 import { Text, textClasses } from '../components/Text';
 import { Textarea } from '../components/Textarea';
+import { ErrorMessage } from '../components/ErrorMessage';
 
 const PROFILE_TITLES_LIMIT = 10;
+
+interface ProfileReadState {
+  key: string;
+  profile: PublicProfile | null;
+  notFound: boolean;
+  error: string;
+}
 
 export function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [selected, setSelected] = useState<{ type: MediaType; id: number } | null>(null);
+  const profileKey = username ?? '__missing-profile__';
+  const [readState, setReadState] = useState<ProfileReadState>({
+    key: '',
+    profile: null,
+    notFound: false,
+    error: '',
+  });
+  const [selected, setSelected] = useState<{ key: string; type: MediaType; id: number } | null>(null);
   const isOwnProfile = user?.username === username;
+  const loading = readState.key !== profileKey;
+  const profile = loading ? null : readState.profile;
+  const notFound = !loading && readState.notFound;
+  const error = loading ? '' : readState.error;
 
   // Inline bio edit mode (own profile only).
-  const [editingBio, setEditingBio] = useState(false);
+  const [editingBioFor, setEditingBioFor] = useState<string | null>(null);
   const [bio, setBio] = useState('');
-  const [savingBio, setSavingBio] = useState(false);
+  const [savingBioFor, setSavingBioFor] = useState<string | null>(null);
+  const [bioFailure, setBioFailure] = useState<{ key: string; message: string } | null>(null);
+  const editingBio = editingBioFor === profileKey;
+  const savingBio = savingBioFor === profileKey;
+  const bioError = bioFailure?.key === profileKey ? bioFailure.message : '';
 
   useEffect(() => {
-    setEditingBio(false);
+    const controller = new AbortController();
     api
-      .get<PublicProfile>(`/users/${username}/public`)
-      .then(setProfile)
-      .catch(() => setNotFound(true));
-  }, [username]);
+      .get<PublicProfile>(`/users/${profileKey}/public`, { signal: controller.signal })
+      .then((loadedProfile) => {
+        if (!controller.signal.aborted) {
+          setReadState({ key: profileKey, profile: loadedProfile, notFound: false, error: '' });
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted) return;
+        if (isAbortError(requestError)) return;
+        if (requestError instanceof ApiError && requestError.status === 404) {
+          setReadState({ key: profileKey, profile: null, notFound: true, error: '' });
+          return;
+        }
+        setReadState({
+          key: profileKey,
+          profile: null,
+          notFound: false,
+          error: getErrorMessage(requestError, 'Could not load profile'),
+        });
+      });
+    return () => controller.abort();
+  }, [profileKey]);
 
   function startEditingBio() {
     if (!profile) return;
     setBio(profile.bio ?? '');
-    setEditingBio(true);
+    setBioFailure(null);
+    setEditingBioFor(profileKey);
   }
 
   async function handleSaveBio() {
-    setSavingBio(true);
+    const mutationKey = profileKey;
+    setSavingBioFor(mutationKey);
+    setBioFailure(null);
     try {
       const newBio = bio.trim() || null;
       await api.patch('/me/profile', { bio: newBio });
-      setProfile((prev) => (prev ? { ...prev, bio: newBio } : prev));
-      setEditingBio(false);
+      setReadState((previous) =>
+        previous.key === mutationKey && previous.profile
+          ? { ...previous, profile: { ...previous.profile, bio: newBio } }
+          : previous,
+      );
+      setEditingBioFor(null);
     } catch (err) {
-      console.error(err);
+      setBioFailure({ key: mutationKey, message: getErrorMessage(err, 'Could not save bio') });
     } finally {
-      setSavingBio(false);
+      setSavingBioFor((current) => (current === mutationKey ? null : current));
     }
   }
 
@@ -71,11 +117,19 @@ export function ProfilePage() {
     );
   }
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <Text color="subtle">Loading...</Text>
       </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <Layout>
+        <ErrorMessage>{error || 'Could not load profile'}</ErrorMessage>
+      </Layout>
     );
   }
 
@@ -100,6 +154,7 @@ export function ProfilePage() {
         >
           {editingBio && (
             <div className="space-y-2">
+              {bioError && <ErrorMessage>{bioError}</ErrorMessage>}
               <Textarea
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
@@ -113,7 +168,7 @@ export function ProfilePage() {
                   <Button variant="primary" onClick={handleSaveBio} disabled={savingBio}>
                     {savingBio ? 'Saving...' : 'Save'}
                   </Button>
-                  <Button variant="ghost" onClick={() => setEditingBio(false)}>
+                  <Button variant="ghost" onClick={() => setEditingBioFor(null)}>
                     Cancel
                   </Button>
                 </div>
@@ -138,7 +193,13 @@ export function ProfilePage() {
           username={username!}
           topPicks={profile.topPicks}
           isOwnProfile={isOwnProfile}
-          onSaved={(topPicks) => setProfile((prev) => (prev ? { ...prev, topPicks } : prev))}
+          onSaved={(topPicks) =>
+            setReadState((previous) =>
+              previous.key === profileKey && previous.profile
+                ? { ...previous, profile: { ...previous.profile, topPicks } }
+                : previous,
+            )
+          }
         />
 
         {/* Movies */}
@@ -157,7 +218,7 @@ export function ProfilePage() {
               type="movie"
               titles={displayedMovies}
               basePath={`/u/${profile.username}/movies`}
-              onSelect={(t) => setSelected({ type: 'movie', id: t.id })}
+              onSelect={(t) => setSelected({ key: profileKey, type: 'movie', id: t.id })}
             />
           ) : (
             <Text color="faint">No watched movies yet...</Text>
@@ -180,7 +241,7 @@ export function ProfilePage() {
               type="show"
               titles={displayedShows}
               basePath={`/u/${profile.username}/shows`}
-              onSelect={(t) => setSelected({ type: 'show', id: t.id })}
+              onSelect={(t) => setSelected({ key: profileKey, type: 'show', id: t.id })}
             />
           ) : (
             <Text color="faint">No watched TV shows yet...</Text>
@@ -204,7 +265,7 @@ export function ProfilePage() {
       </div>
 
       {/* Modal */}
-      {selected && (
+      {selected?.key === profileKey && (
         <TitleDetailModal
           type={selected.type}
           id={selected.id}

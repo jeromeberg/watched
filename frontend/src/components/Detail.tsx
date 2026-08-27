@@ -7,6 +7,7 @@ import { Text } from './Text';
 import { Button, buttonClasses } from './Button';
 import { Textarea } from './Textarea';
 import { DeleteModal } from './DeleteModal';
+import { ErrorMessage } from './ErrorMessage';
 
 interface DetailProps {
   type: MediaType;
@@ -26,7 +27,10 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
   const [showDelete, setShowDelete] = useState(false);
   const {
     title,
+    loading,
     notFound,
+    loadError,
+    mutationError,
     savingStatus,
     savingRating,
     updateStatus,
@@ -39,7 +43,11 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
     return <Text color="subtle">{isOtherUser ? 'Not found.' : 'Not found or not in your list.'}</Text>;
   }
 
-  if (!title) {
+  if (loadError) {
+    return <ErrorMessage>{loadError}</ErrorMessage>;
+  }
+
+  if (loading || !title) {
     return <Text color="subtle">Loading...</Text>;
   }
 
@@ -55,6 +63,7 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
 
   return (
     <div className="space-y-8">
+      {mutationError && <ErrorMessage>{mutationError}</ErrorMessage>}
       {/* Header */}
       <div className="flex gap-6">
         <div className="w-28 shrink-0 aspect-[2/3] rounded-xl overflow-hidden bg-gray-800">

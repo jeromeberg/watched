@@ -1,38 +1,100 @@
-import { LibraryTitle } from '../types';
+import type { LibraryTitle } from '../types';
 
 const BASE_URL = '/api';
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+export interface ApiRequestOptions {
+  signal?: AbortSignal;
+}
+
+type UnauthorizedHandler = () => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+/** Format the message returned by NestJS for one failed request. */
+export function formatApiErrorMessage(payload: unknown, status: number): string {
+  if (typeof payload !== 'object' || payload === null || !('message' in payload)) {
+    return `HTTP ${status}`;
+  }
+
+  const message = payload.message;
+  if (typeof message === 'string' && message.trim()) return message;
+  if (Array.isArray(message)) {
+    const messages = message
+      .filter((item): item is string => typeof item === 'string' && !!item.trim())
+      .map((item) => item.trim());
+    if (messages.length > 0) return messages.join(', ');
+  }
+
+  return `HTTP ${status}`;
+}
+
+/** Report whether a rejected request was deliberately cancelled. */
+export function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+/** Return a readable error without exposing non-error rejection values. */
+export function getErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
+/** Register the active session handler and clean up only that registration. */
+export function registerUnauthorizedHandler(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandler = handler;
+  return () => {
+    if (unauthorizedHandler === handler) unauthorizedHandler = null;
+  };
+}
+
+async function request<T>(path: string, init: RequestInit = {}, options: ApiRequestOptions = {}): Promise<T> {
   const token = localStorage.getItem('token');
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...init,
+    signal: options.signal,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
+      ...(init.headers ?? {}),
     },
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message ?? `HTTP ${res.status}`);
+
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => ({}));
+    if (response.status === 401) unauthorizedHandler?.();
+    throw new ApiError(formatApiErrorMessage(payload, response.status), response.status);
   }
-  return res.json() as Promise<T>;
+
+  const responseText = await response.text();
+  if (!responseText) return null as T;
+  return JSON.parse(responseText) as T;
 }
 
 /** Load the complete movie and TV library without hiding either request failure. */
-async function getMyLibrary(): Promise<LibraryTitle[]> {
+async function getMyLibrary(options: ApiRequestOptions = {}): Promise<LibraryTitle[]> {
   const [movies, shows] = await Promise.all([
-    request<LibraryTitle[]>('/movies'),
-    request<LibraryTitle[]>('/shows'),
+    request<LibraryTitle[]>('/movies', {}, options),
+    request<LibraryTitle[]>('/shows', {}, options),
   ]);
   return [...movies, ...shows];
 }
 
 export const api = {
-  get: <T>(path: string) => request<T>(path),
-  post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
-  patch: <T>(path: string, body: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  get: <T>(path: string, options: ApiRequestOptions = {}) => request<T>(path, {}, options),
+  post: <T>(path: string, body: unknown, options: ApiRequestOptions = {}) =>
+    request<T>(path, { method: 'POST', body: JSON.stringify(body) }, options),
+  patch: <T>(path: string, body: unknown, options: ApiRequestOptions = {}) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }, options),
+  delete: <T>(path: string, options: ApiRequestOptions = {}) =>
+    request<T>(path, { method: 'DELETE' }, options),
   getMyLibrary,
 };

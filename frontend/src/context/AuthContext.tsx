@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
-import { api } from '../api/client';
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import { api, registerUnauthorizedHandler } from '../api/client';
+import { userFromToken } from './authToken';
 
 interface User {
   id: number;
@@ -15,28 +16,34 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-function parseJwt(token: string): { sub: number; username: string } {
-  return JSON.parse(atob(token.split('.')[1]));
-}
+/** Restore a valid stored session or remove an unusable token. */
+function initialUser(): User | null {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
 
-function userFromToken(token: string): User | null {
-  try {
-    const { sub, username } = parseJwt(token);
-    return { id: sub, username };
-  } catch {
-    return null;
-  }
+  const user = userFromToken(token);
+  if (!user) localStorage.removeItem('token');
+  return user;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('token');
-    return stored ? userFromToken(stored) : null;
-  });
+  const [user, setUser] = useState<User | null>(initialUser);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    setUser(null);
+  }, []);
+
+  useEffect(() => registerUnauthorizedHandler(logout), [logout]);
 
   function storeToken(token: string) {
+    const nextUser = userFromToken(token);
+    if (!nextUser) {
+      logout();
+      throw new Error('Invalid authentication token');
+    }
     localStorage.setItem('token', token);
-    setUser(userFromToken(token));
+    setUser(nextUser);
   }
 
   async function login(username: string, password: string) {
@@ -47,11 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function register(username: string, password: string) {
     await api.post('/auth/register', { username, password });
     await login(username, password);
-  }
-
-  function logout() {
-    localStorage.removeItem('token');
-    setUser(null);
   }
 
   return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
