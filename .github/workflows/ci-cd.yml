@@ -141,6 +141,7 @@ jobs:
         run: docker buildx imagetools inspect ${{ matrix.image }}:latest
 
   deploy:
+    continue-on-error: true
     needs: merge
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
