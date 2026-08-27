@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/client';
 import { useDebounce } from '../hooks/useDebounce';
-import { Title, SearchResult, MediaType, MEDIA } from '../types';
+import { LibraryTitle, SearchResult, MediaType, MEDIA } from '../types';
 import { Poster } from './Poster';
 import { Text } from './Text';
 import { Input } from './Input';
 
 interface TitlesSearchProps {
   type: MediaType;
-  titles: Title[];
-  onAdd: (title: Title) => void;
+  titles: LibraryTitle[];
+  onAdd: (title: LibraryTitle) => void;
 }
 
 export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
@@ -38,7 +38,7 @@ export function TitlesSearch({ type, titles, onAdd }: TitlesSearchProps) {
   async function handleAdd(result: SearchResult) {
     setAdding((prev) => new Set(prev).add(result.tmdbId));
     try {
-      const added = await api.post<Title>(`/${MEDIA[type].path}`, {
+      const added = await api.post<LibraryTitle>(`/${MEDIA[type].path}`, {
         tmdbId: result.tmdbId,
       });
       onAdd(added);

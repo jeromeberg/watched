@@ -1,11 +1,7 @@
+import { PosterTitle } from '../types';
 import { Text } from './Text';
 
-interface Posterable {
-  title: string;
-  posterUrl: string | null;
-}
-
-export function Poster({ title }: { title: Posterable }) {
+export function Poster({ title }: { title: PosterTitle }) {
   return (
     <div className="aspect-[2/3] rounded-lg overflow-hidden bg-gray-800">
       {title.posterUrl ? (
@@ -21,7 +17,7 @@ export function Poster({ title }: { title: Posterable }) {
   );
 }
 
-export function SmallPoster({ title }: { title: Posterable }) {
+export function SmallPoster({ title }: { title: PosterTitle }) {
   return (
     <div className="w-10 shrink-0 aspect-[2/3] rounded-md overflow-hidden bg-gray-700">
       {title.posterUrl && (

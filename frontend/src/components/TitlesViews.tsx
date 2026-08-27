@@ -1,18 +1,16 @@
 import { useNavigate } from 'react-router-dom';
-import { PosterItem, MediaType } from '../types';
+import { LibraryTitle, MediaType } from '../types';
 import { Poster, SmallPoster } from './Poster';
 import { StarRating } from './Rating';
 import { pathFor, BasePath } from '../utils/titlesPath';
 import { Text } from './Text';
 
-type ViewTitle = PosterItem & { type?: string };
-
 interface ViewProps {
   type?: MediaType;
-  titles: ViewTitle[];
+  titles: LibraryTitle[];
   basePath?: BasePath;
   onRemove?: (id: number) => void;
-  onSelect?: (title: ViewTitle) => void;
+  onSelect?: (title: LibraryTitle) => void;
 }
 
 export function GridView({ type, titles, basePath, onRemove, onSelect }: ViewProps) {

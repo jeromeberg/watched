@@ -1,14 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { StarRating } from './Rating';
-import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
-import { Title, WatchStatus, MediaType, MEDIA } from '../types';
+import { WatchStatus, MediaType } from '../types';
+import { TitleUpdates, useTitleDetail } from '../hooks/useTitleDetail';
 import { Text } from './Text';
 import { Button, buttonClasses } from './Button';
 import { Textarea } from './Textarea';
 import { DeleteModal } from './DeleteModal';
-
-export type TitleUpdates = Partial<Pick<Title, 'rating' | 'status' | 'notes'>>;
 
 interface DetailProps {
   type: MediaType;
@@ -18,37 +16,24 @@ interface DetailProps {
   onRemove?: (id: number) => void;
 }
 
+const STATUSES: WatchStatus[] = ['TO_WATCH', 'WATCHED'];
+
 export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) {
   const { user } = useAuth();
-  const titleId = Number(id);
   const isOtherUser = !!username && username !== user?.username;
-  const basePath = isOtherUser
-    ? `/users/${username}/${MEDIA[type].path}/${id}`
-    : `/${MEDIA[type].path}/${id}`;
-
-  const [title, setTitle] = useState<Title | null>(null);
-  const [notFound, setNotFound] = useState(false);
-  const [savingStatus, setSavingStatus] = useState(false);
-  const [savingRating, setSavingRating] = useState(false);
   const [notesSaved, setNotesSaved] = useState(false);
-  const [localNotes, setLocalNotes] = useState('');
+  const [notesDraft, setNotesDraft] = useState<{ key: string; value: string } | null>(null);
   const [showDelete, setShowDelete] = useState(false);
-
-  useEffect(() => {
-    setNotFound(false);
-    setTitle(null);
-    api
-      .get<Title | null>(basePath)
-      .then((titleData) => {
-        if (!titleData) {
-          setNotFound(true);
-          return;
-        }
-        setTitle(titleData);
-        setLocalNotes(titleData.notes ?? '');
-      })
-      .catch(() => setNotFound(true));
-  }, [type, id, basePath]);
+  const {
+    title,
+    notFound,
+    savingStatus,
+    savingRating,
+    updateStatus,
+    updateRating,
+    updateNotes,
+    deleteTitle,
+  } = useTitleDetail({ type, id, username, isOtherUser, onUpdate, onRemove });
 
   if (notFound) {
     return <Text color="subtle">{isOtherUser ? 'Not found.' : 'Not found or not in your list.'}</Text>;
@@ -58,42 +43,14 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
     return <Text color="subtle">Loading...</Text>;
   }
 
-  async function handleUpdate(updates: TitleUpdates) {
-    await api.patch(`/titles/${titleId}`, updates);
-    setTitle((prev) => (prev ? { ...prev, ...updates } : prev));
-    onUpdate?.(titleId, updates);
-  }
-
-  async function handleStatus(status: WatchStatus) {
-    if (status === title!.status) return;
-    setSavingStatus(true);
-    try {
-      await handleUpdate({ status });
-    } finally {
-      setSavingStatus(false);
-    }
-  }
-
-  async function handleRating(rating: number | null) {
-    setSavingRating(true);
-    try {
-      await handleUpdate({ rating });
-    } finally {
-      setSavingRating(false);
-    }
-  }
+  const notesKey = `${username ?? ''}:${title.id}`;
+  const localNotes = notesDraft?.key === notesKey ? notesDraft.value : (title.notes ?? '');
 
   async function handleNotesSave() {
     const notes = localNotes.trim() || null;
-    if (notes === title!.notes) return;
-    await handleUpdate({ notes });
+    if (!(await updateNotes(notes))) return;
     setNotesSaved(true);
     setTimeout(() => setNotesSaved(false), 1500);
-  }
-
-  async function handleDelete() {
-    await api.delete(`/titles/${titleId}`);
-    onRemove?.(titleId);
   }
 
   return (
@@ -129,10 +86,10 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
 
           {/* Status */}
           <div className="flex gap-2">
-            {(['TO_WATCH', 'WATCHED'] as WatchStatus[]).map((s) => (
+            {STATUSES.map((s) => (
               <button
                 key={s}
-                onClick={() => handleStatus(s)}
+                onClick={() => updateStatus(s)}
                 disabled={savingStatus || isOtherUser}
                 className={`text-xs px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                   title.status === s
@@ -148,22 +105,22 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
           </div>
 
           {/* Rating */}
-          <StarRating value={title.rating} onChange={handleRating} disabled={savingRating || isOtherUser} />
-
-          
+          <StarRating value={title.rating} onChange={updateRating} disabled={savingRating || isOtherUser} />
         </div>
       </div>
 
       {title.imdbId && (
-            <div><a
-              href={`https://www.imdb.com/title/${title.imdbId}/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={buttonClasses('yellow', 'xs', 'inline-block')}
-            >
-              IMDb
-            </a></div>
-          )}
+        <div>
+          <a
+            href={`https://www.imdb.com/title/${title.imdbId}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonClasses('yellow', 'xs', 'inline-block')}
+          >
+            IMDb
+          </a>
+        </div>
+      )}
 
       {/* Overview */}
       {title.description && (
@@ -197,7 +154,7 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
           </Text>
           <Textarea
             value={localNotes}
-            onChange={(e) => setLocalNotes(e.target.value)}
+            onChange={(e) => setNotesDraft({ key: notesKey, value: e.target.value })}
             onBlur={handleNotesSave}
             rows={2}
             maxLength={500}
@@ -218,7 +175,7 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
         <DeleteModal
           heading="Remove title"
           message={`Remove "${title.title}" from your list? This cannot be undone.`}
-          onConfirm={handleDelete}
+          onConfirm={deleteTitle}
           onClose={() => setShowDelete(false)}
         />
       )}

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
-import { Title, MediaType, Filter, MEDIA, mediaTypeOf } from '../types';
+import { LibraryTitle, MediaType, Filter, MEDIA, mediaTypeOf } from '../types';
 import { GridView, ListView } from './TitlesViews';
 import { pathFor, BasePath } from '../utils/titlesPath';
 import { ViewToggle } from './ViewToggle';
 import { Dropdown } from './Dropdown';
 import { TitleDetailModal } from './TitleDetailModal';
-import { TitleUpdates } from './Detail';
+import { TitleUpdates } from '../hooks/useTitleDetail';
 import { useViewMode, ViewMode } from '../hooks/useViewMode';
 import { SortKey, SORTS, sortTitles } from '../utils/titlesSort';
 import { Text } from './Text';
@@ -14,12 +14,12 @@ import { pillClasses } from './Button';
 
 interface TitlesProps {
   type?: MediaType;
-  titles: Title[];
+  titles: LibraryTitle[];
   basePath?: BasePath;
   onRemove?: (id: number) => void;
   onRemoved?: (id: number) => void;
   onTitleUpdate?: (id: number, updates: TitleUpdates) => void;
-  username?: string; // undefined = own
+  username?: string;
 }
 
 const FILTERS: { key: Filter; label: string }[] = [
@@ -44,7 +44,7 @@ export function Titles({
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [storedViewMode, setStoredViewMode] = useViewMode(type ?? 'mixed');
-  const [selected, setSelected] = useState<Title | null>(null);
+  const [selected, setSelected] = useState<LibraryTitle | null>(null);
 
   const filterParam = searchParams.get('filter');
   const filter: Filter = FILTERS.some((f) => f.key === filterParam)
@@ -132,7 +132,7 @@ export function Titles({
           titles={sortedTitles}
           basePath={basePath}
           onRemove={onRemove}
-          onSelect={(t) => setSelected(t as Title)}
+          onSelect={setSelected}
         />
       ) : (
         <ListView
@@ -140,7 +140,7 @@ export function Titles({
           titles={sortedTitles}
           basePath={basePath}
           onRemove={onRemove}
-          onSelect={(t) => setSelected(t as Title)}
+          onSelect={setSelected}
         />
       )}
 

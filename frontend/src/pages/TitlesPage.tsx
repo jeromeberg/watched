@@ -6,24 +6,25 @@ import { TitlesSearch } from '../components/TitlesSearch';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { DeleteModal } from '../components/DeleteModal';
 import { buttonClasses } from '../components/Button';
-import { Title, MediaType, MEDIA } from '../types';
+import { TitleUpdates } from '../hooks/useTitleDetail';
+import { LibraryTitle, MediaType, MEDIA } from '../types';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 export function TitlesPage({ type }: { type: MediaType }) {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
-  const [titles, setTitles] = useState<Title[]>([]);
-  const [pendingRemove, setPendingRemove] = useState<Title | null>(null);
+  const [titles, setTitles] = useState<LibraryTitle[]>([]);
+  const [pendingRemove, setPendingRemove] = useState<LibraryTitle | null>(null);
   const isOtherUser = !!username && username !== user?.username;
   const basePath = username ? `/u/${username}/${MEDIA[type].path}` : `/${MEDIA[type].path}`;
 
   useEffect(() => {
     const path = isOtherUser ? `/users/${username}/${MEDIA[type].path}` : `/${MEDIA[type].path}`;
-    api.get<Title[]>(path).then(setTitles).catch(console.error);
+    api.get<LibraryTitle[]>(path).then(setTitles).catch(console.error);
   }, [type, username, isOtherUser]);
 
-  function handleTitleUpdate(id: number, updates: Partial<Title>) {
+  function handleTitleUpdate(id: number, updates: TitleUpdates) {
     setTitles((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
   }
 

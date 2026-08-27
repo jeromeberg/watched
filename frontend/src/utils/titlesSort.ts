@@ -1,4 +1,4 @@
-import { Title } from '../types';
+import { LibraryTitle } from '../types';
 
 export type SortKey =
   'added_desc' | 'added_asc' | 'rating_desc' | 'rating_asc' | 'release_desc' | 'release_asc';
@@ -19,13 +19,12 @@ function compareNullable(a: number | null, b: number | null, dir: 1 | -1): numbe
   return (a - b) * dir;
 }
 
-function parseDate(v?: string): number | null {
-  if (!v) return null;
+function parseDate(v: string): number | null {
   const t = Date.parse(v);
   return Number.isNaN(t) ? null : t;
 }
 
-export function sortTitles(titles: Title[], sort: SortKey): Title[] {
+export function sortTitles(titles: LibraryTitle[], sort: SortKey): LibraryTitle[] {
   return [...titles].sort((a, b) => {
     switch (sort) {
       case 'added_desc':

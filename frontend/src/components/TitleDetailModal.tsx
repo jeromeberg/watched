@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Modal } from './Modal';
-import { Detail, TitleUpdates } from './Detail';
+import { Detail } from './Detail';
+import { TitleUpdates } from '../hooks/useTitleDetail';
 import { Text, textClasses } from './Text';
 import { MediaType } from '../types';
 

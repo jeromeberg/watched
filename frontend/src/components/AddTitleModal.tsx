@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api/client';
-import { Title } from '../types';
+import { LibraryTitle } from '../types';
 import { Modal } from './Modal';
 import { Text } from './Text';
 import { Input } from './Input';
@@ -9,7 +9,7 @@ import { SmallPoster } from './Poster';
 interface AddTitleModalProps {
   collectionId: number;
   existingTitleIds: Set<number>;
-  onAdd: (title: Title) => void;
+  onAdd: (title: LibraryTitle) => void;
   onRemove: (titleId: number) => void;
   onClose: () => void;
 }
@@ -21,17 +21,13 @@ export function AddTitleModal({
   onRemove,
   onClose,
 }: AddTitleModalProps) {
-  const [allTitles, setAllTitles] = useState<Title[]>([]);
+  const [allTitles, setAllTitles] = useState<LibraryTitle[]>([]);
   const [search, setSearch] = useState('');
   const [toggling, setToggling] = useState<Set<number>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([api.get<Title[]>('/movies'), api.get<Title[]>('/shows').catch(() => [] as Title[])]).then(
-      ([movies, shows]) => {
-        setAllTitles([...movies, ...shows]);
-      },
-    );
+    api.getMyLibrary().then(setAllTitles).catch(console.error);
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
@@ -39,7 +35,7 @@ export function AddTitleModal({
     ? allTitles.filter((t) => t.title.toLowerCase().includes(search.toLowerCase()))
     : allTitles;
 
-  async function toggle(title: Title) {
+  async function toggle(title: LibraryTitle) {
     const inCollection = existingTitleIds.has(title.id);
     setToggling((prev) => new Set(prev).add(title.id));
     try {

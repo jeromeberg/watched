@@ -8,9 +8,22 @@ import { DeleteModal } from '../components/DeleteModal';
 import { Button, buttonClasses } from '../components/Button';
 import { Text, textClasses } from '../components/Text';
 import { Titles } from '../components/Titles';
+import { TitleUpdates } from '../hooks/useTitleDetail';
 import { useAuth } from '../context/AuthContext';
-import { CollectionDetail, Title } from '../types';
+import { CollectionDetail, CollectionItem, CollectionTitle, LibraryTitle } from '../types';
 import { api } from '../api/client';
+
+/** Flatten one collection item for the shared library-title list UI. */
+function titleListItem(item: CollectionItem): LibraryTitle {
+  return { ...item.title, addedAt: item.addedAt };
+}
+
+/** Build a collection title without the library relation date. */
+function collectionTitleOf(title: LibraryTitle): CollectionTitle {
+  const { addedAt, ...collectionTitle } = title;
+  void addedAt;
+  return collectionTitle;
+}
 
 export function CollectionDetailPage() {
   const { username, id } = useParams<{ username?: string; id: string }>();
@@ -24,14 +37,17 @@ export function CollectionDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
-  const [pendingRemoveItem, setPendingRemoveItem] = useState<Title | null>(null);
+  const [pendingRemoveItem, setPendingRemoveItem] = useState<LibraryTitle | null>(null);
 
   useEffect(() => {
     api.get<CollectionDetail>(basePath).then(setCollection).catch(console.error);
   }, [basePath]);
 
   async function handleEdit(name: string, description: string) {
-    const updated = await api.patch<CollectionDetail>(`/collections/${id}`, { name, description });
+    const updated = await api.patch<Pick<CollectionDetail, 'name' | 'description'>>(`/collections/${id}`, {
+      name,
+      description,
+    });
     setCollection((prev) =>
       prev ? { ...prev, name: updated.name, description: updated.description } : prev,
     );
@@ -42,7 +58,7 @@ export function CollectionDetailPage() {
     navigate('/collections');
   }
 
-  function handleTitleUpdate(id: number, updates: Partial<Title>) {
+  function handleTitleUpdate(id: number, updates: TitleUpdates) {
     setCollection((prev) =>
       prev
         ? {
@@ -55,14 +71,19 @@ export function CollectionDetailPage() {
     );
   }
 
-  function handleItemAdded(title: Title) {
+  function handleItemAdded(title: LibraryTitle) {
     setCollection((prev) =>
       prev
         ? {
             ...prev,
             items: [
               ...prev.items,
-              { collectionId: prev.id, titleId: title.id, addedAt: new Date().toISOString(), title },
+              {
+                collectionId: prev.id,
+                titleId: title.id,
+                addedAt: new Date().toISOString(),
+                title: collectionTitleOf(title),
+              },
             ],
           }
         : prev,
@@ -90,7 +111,7 @@ export function CollectionDetailPage() {
     );
   }
 
-  const titles = collection.items.map((i) => ({ ...i.title, addedAt: i.addedAt }));
+  const titles = collection.items.map(titleListItem);
 
   return (
     <Layout>

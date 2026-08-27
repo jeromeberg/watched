@@ -1,30 +1,66 @@
 export type WatchStatus = 'WATCHED' | 'TO_WATCH';
 export type Filter = 'all' | 'to_watch' | 'watched';
+export type TitleType = 'MOVIE' | 'TV';
 export type MediaType = 'movie' | 'show';
 
+// --- Titles ---
+
+export interface PosterTitle {
+  title: string;
+  posterUrl: string | null;
+}
+
+export interface TitleMetadata extends PosterTitle {
+  id: number;
+  tmdbId: number;
+  type: TitleType;
+  releaseYear: number | null;
+  imdbId: string | null;
+  director: string | null;
+  description: string | null;
+}
+
+export interface LibraryTitle extends TitleMetadata {
+  addedAt: string;
+  rating: number | null;
+  status: WatchStatus;
+  notes: string | null;
+}
+
+export interface SearchResult extends PosterTitle {
+  tmdbId: number;
+  releaseYear: number | null;
+}
+
 // --- Profile ---
+
+export interface ProfileTopPick {
+  rank: number;
+  title: TitleMetadata;
+}
 
 export interface PublicProfile {
   username: string;
   bio: string | null;
-  topPicks: TopPick[];
-  movies: ProfileTitle[];
-  shows: ProfileTitle[];
+  topPicks: ProfileTopPick[];
+  movies: LibraryTitle[];
+  shows: LibraryTitle[];
   collections: CollectionSummary[];
 }
 
-interface TopPick {
-  rank: number;
-  title: ProfileTitle;
-}
-
 // --- Collections ---
+
+export interface CollectionTitle extends TitleMetadata {
+  rating: number | null;
+  status: WatchStatus;
+  notes: string | null;
+}
 
 export interface CollectionItem {
   collectionId: number;
   titleId: number;
   addedAt: string;
-  title: Title;
+  title: CollectionTitle;
 }
 
 export interface CollectionDetail {
@@ -42,43 +78,12 @@ export interface CollectionSummary {
   coverPosters: string[];
 }
 
-// --- Titles ---
-
-export interface PosterItem {
-  id: number;
-  title: string;
-  posterUrl: string | null;
-  releaseYear: number | null;
-  director: string | null;
-  rating: number | null;
-  status: WatchStatus;
-}
-
-type ProfileTitle = PosterItem;
-
-export interface Title extends PosterItem {
-  tmdbId: number;
-  type: string;
-  notes: string | null;
-  description: string | null;
-  imdbId: string | null;
-  addedAt?: string;
-}
-
-// tmdb
-export interface SearchResult {
-  tmdbId: number;
-  title: string;
-  posterUrl: string | null;
-  releaseYear: number | null;
-}
-
 export const MEDIA: Record<MediaType, { path: string; label: string; noun: string }> = {
   movie: { path: 'movies', label: 'Movies', noun: 'movie' },
   show: { path: 'shows', label: 'TV shows', noun: 'TV show' },
 };
 
-// from raw to MediaType
-export function mediaTypeOf(type: string): MediaType {
+/** Convert the stored title type to its frontend route type. */
+export function mediaTypeOf(type: TitleType): MediaType {
   return type === 'TV' ? 'show' : 'movie';
 }

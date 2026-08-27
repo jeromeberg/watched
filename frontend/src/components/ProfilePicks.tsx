@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { api } from '../api/client';
-import { PublicProfile, Title } from '../types';
+import { LibraryTitle, PublicProfile } from '../types';
 import { Poster } from './Poster';
 import { Button } from './Button';
 import { Text } from './Text';
@@ -14,30 +14,26 @@ interface ProfilePicksProps {
 
 export function ProfilePicks({ username, topPicks, isOwnProfile, onSaved }: ProfilePicksProps) {
   const [editing, setEditing] = useState(false);
-  const [allTitles, setAllTitles] = useState<Title[]>([]);
-  const [picks, setPicks] = useState<Title[]>([]);
+  const [allTitles, setAllTitles] = useState<LibraryTitle[]>([]);
+  const [picks, setPicks] = useState<LibraryTitle[]>([]);
   const [saving, setSaving] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOver, setDragOver] = useState<{ index: number; side: 'before' | 'after' } | null>(null);
 
   async function startEditing() {
     // The picker needs the full library; only fetched when entering edit mode.
-    const [movies, shows] = await Promise.all([
-      api.get<Title[]>('/movies'),
-      api.get<Title[]>('/shows').catch(() => [] as Title[]),
-    ]);
-    const combined = [...movies, ...shows];
+    const combined = await api.getMyLibrary();
     setAllTitles(combined);
     setPicks(
       [...topPicks]
         .sort((a, b) => a.rank - b.rank)
         .map((p) => combined.find((t) => t.id === p.title.id))
-        .filter((t): t is Title => t !== undefined),
+        .filter((t): t is LibraryTitle => t !== undefined),
     );
     setEditing(true);
   }
 
-  function togglePick(title: Title) {
+  function togglePick(title: LibraryTitle) {
     setPicks((prev) => {
       const without = prev.filter((p) => p.id !== title.id);
       if (without.length !== prev.length) return without;
