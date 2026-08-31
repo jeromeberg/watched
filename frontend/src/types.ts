@@ -42,10 +42,17 @@ export interface ProfileTopPick {
 export interface PublicProfile {
   username: string;
   bio: string | null;
+  followersCount: number;
+  followingCount: number;
   topPicks: ProfileTopPick[];
   movies: LibraryTitle[];
   shows: LibraryTitle[];
   collections: CollectionSummary[];
+}
+
+export interface FriendUser {
+  username: string;
+  bio: string | null;
 }
 
 // --- Collections ---

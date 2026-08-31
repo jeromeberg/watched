@@ -6,10 +6,11 @@ interface ProfileHeaderProps {
   bio?: string | null;
   isOwnProfile?: boolean;
   actions?: ReactNode;
+  stats?: ReactNode;
   children?: ReactNode;
 }
 
-export function ProfileHeader({ username, bio, isOwnProfile, actions, children }: ProfileHeaderProps) {
+export function ProfileHeader({ username, bio, isOwnProfile, actions, stats, children }: ProfileHeaderProps) {
   return (
     <div className="space-y-3">
       <div className="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold">
@@ -29,6 +30,7 @@ export function ProfileHeader({ username, bio, isOwnProfile, actions, children }
               Add a bio...
             </Text>
           ) : null}
+          {stats && <div className="mt-3">{stats}</div>}
         </div>
         {actions && <div className="shrink-0">{actions}</div>}
       </div>

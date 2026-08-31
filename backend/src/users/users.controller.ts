@@ -1,4 +1,16 @@
-import { Controller, Get, Patch, Param, Query, Body, UseGuards, Req, ParseIntPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthenticatedRequest } from '../auth/authenticated-request.interface';
 import { UsersService } from './users.service';
@@ -14,6 +26,39 @@ export class UsersController {
   @Get('users/:username/public')
   getPublicProfile(@Param('username') username: string) {
     return this.usersService.getPublicProfile(username);
+  }
+
+  /** List the users who follow a public profile. */
+  @Get('users/:username/followers')
+  getFollowers(@Param('username') username: string) {
+    return this.usersService.getFollowers(username);
+  }
+
+  /** List the users followed by a public profile. */
+  @Get('users/:username/following')
+  getFollowing(@Param('username') username: string) {
+    return this.usersService.getFollowing(username);
+  }
+
+  /** Return whether the signed-in user follows a public profile. */
+  @Get('users/:username/follow-status')
+  @UseGuards(JwtAuthGuard)
+  getFollowStatus(@Req() req: AuthenticatedRequest, @Param('username') username: string) {
+    return this.usersService.getFollowStatus(req.user.id, username);
+  }
+
+  /** Follow a public profile for the signed-in user. */
+  @Post('users/:username/follow')
+  @UseGuards(JwtAuthGuard)
+  follow(@Req() req: AuthenticatedRequest, @Param('username') username: string) {
+    return this.usersService.follow(req.user.id, username);
+  }
+
+  /** Stop following a public profile for the signed-in user. */
+  @Delete('users/:username/follow')
+  @UseGuards(JwtAuthGuard)
+  unfollow(@Req() req: AuthenticatedRequest, @Param('username') username: string) {
+    return this.usersService.unfollow(req.user.id, username);
   }
 
   @Get('users/:username/collections/:collectionId')

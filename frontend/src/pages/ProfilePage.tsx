@@ -23,6 +23,13 @@ interface ProfileReadState {
   error: string;
 }
 
+interface FollowState {
+  key: string;
+  isFollowing: boolean;
+  saving: boolean;
+  error: string;
+}
+
 export function ProfilePage() {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
@@ -34,6 +41,12 @@ export function ProfilePage() {
     error: '',
   });
   const [selected, setSelected] = useState<{ key: string; type: MediaType; id: number } | null>(null);
+  const [followState, setFollowState] = useState<FollowState>({
+    key: '',
+    isFollowing: false,
+    saving: false,
+    error: '',
+  });
   const isOwnProfile = user?.username === username;
   const loading = readState.key !== profileKey;
   const profile = loading ? null : readState.profile;
@@ -75,6 +88,30 @@ export function ProfilePage() {
     return () => controller.abort();
   }, [profileKey]);
 
+  useEffect(() => {
+    if (!user || isOwnProfile) return;
+
+    const controller = new AbortController();
+    api
+      .get<{ isFollowing: boolean }>(`/users/${profileKey}/follow-status`, { signal: controller.signal })
+      .then(({ isFollowing }) => {
+        if (!controller.signal.aborted) {
+          setFollowState({ key: profileKey, isFollowing, saving: false, error: '' });
+        }
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted || isAbortError(requestError)) return;
+        setFollowState({
+          key: profileKey,
+          isFollowing: false,
+          saving: false,
+          error: getErrorMessage(requestError, 'Could not load follow status'),
+        });
+      });
+
+    return () => controller.abort();
+  }, [isOwnProfile, profileKey, user]);
+
   function startEditingBio() {
     if (!profile) return;
     setBio(profile.bio ?? '');
@@ -99,6 +136,44 @@ export function ProfilePage() {
       setBioFailure({ key: mutationKey, message: getErrorMessage(err, 'Could not save bio') });
     } finally {
       setSavingBioFor((current) => (current === mutationKey ? null : current));
+    }
+  }
+
+  /** Toggle the current user's follow relation and update the visible count. */
+  async function handleToggleFollow() {
+    if (!user || isOwnProfile || followState.key !== profileKey || followState.saving) return;
+
+    const wasFollowing = followState.isFollowing;
+    setFollowState((previous) => ({ ...previous, saving: true, error: '' }));
+    try {
+      if (wasFollowing) {
+        await api.delete(`/users/${profileKey}/follow`);
+      } else {
+        await api.post(`/users/${profileKey}/follow`, {});
+      }
+
+      setFollowState({ key: profileKey, isFollowing: !wasFollowing, saving: false, error: '' });
+      setReadState((previous) =>
+        previous.key === profileKey && previous.profile
+          ? {
+              ...previous,
+              profile: {
+                ...previous.profile,
+                followersCount: Math.max(0, previous.profile.followersCount + (wasFollowing ? -1 : 1)),
+              },
+            }
+          : previous,
+      );
+    } catch (requestError) {
+      setFollowState({
+        key: profileKey,
+        isFollowing: wasFollowing,
+        saving: false,
+        error: getErrorMessage(
+          requestError,
+          wasFollowing ? 'Could not unfollow user' : 'Could not follow user',
+        ),
+      });
     }
   }
 
@@ -135,6 +210,7 @@ export function ProfilePage() {
 
   const displayedMovies = profile.movies.slice(0, PROFILE_TITLES_LIMIT);
   const displayedShows = profile.shows.slice(0, PROFILE_TITLES_LIMIT);
+  const followLoading = !!user && !isOwnProfile && followState.key !== profileKey;
 
   return (
     <Layout>
@@ -143,13 +219,48 @@ export function ProfilePage() {
           username={profile.username}
           bio={editingBio ? undefined : profile.bio}
           isOwnProfile={isOwnProfile}
+          stats={
+            <div className="flex gap-4">
+              <Link to={`/u/${profile.username}/followers`} className={textClasses('link', 'sm', 'muted')}>
+                <span className="font-semibold text-white">{profile.followersCount}</span>{' '}
+                {profile.followersCount === 1 ? 'follower' : 'followers'}
+              </Link>
+              <Link to={`/u/${profile.username}/following`} className={textClasses('link', 'sm', 'muted')}>
+                <span className="font-semibold text-white">{profile.followingCount}</span> following
+              </Link>
+            </div>
+          }
           actions={
-            isOwnProfile &&
-            !editingBio && (
+            isOwnProfile && !editingBio ? (
               <Button variant="secondary" onClick={startEditingBio}>
                 Edit bio
               </Button>
-            )
+            ) : !isOwnProfile && user ? (
+              <div className="flex flex-col items-end gap-2">
+                <Button
+                  variant={followState.isFollowing ? 'secondary' : 'primary'}
+                  onClick={handleToggleFollow}
+                  disabled={followLoading || followState.saving || !!followState.error}
+                >
+                  {followLoading
+                    ? 'Loading...'
+                    : followState.saving
+                      ? 'Saving...'
+                      : followState.isFollowing
+                        ? 'Unfollow'
+                        : 'Follow'}
+                </Button>
+                {followState.key === profileKey && followState.error && (
+                  <Text color="danger" size="xs">
+                    {followState.error}
+                  </Text>
+                )}
+              </div>
+            ) : !isOwnProfile ? (
+              <Link to="/login" className={buttonClasses('primary')}>
+                Follow
+              </Link>
+            ) : null
           }
         >
           {editingBio && (

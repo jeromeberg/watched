@@ -7,6 +7,7 @@ import { CollectionsPage } from './pages/CollectionsPage';
 import { CollectionDetailPage } from './pages/CollectionDetailPage';
 import { DetailPage } from './pages/DetailPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ConnectionsPage } from './pages/ConnectionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TitlesPage } from './pages/TitlesPage';
 
@@ -74,6 +75,8 @@ function App() {
             }
           />
           <Route path="/u/:username" element={<ProfilePage />} />
+          <Route path="/u/:username/followers" element={<ConnectionsPage type="followers" />} />
+          <Route path="/u/:username/following" element={<ConnectionsPage type="following" />} />
           <Route path="/u/:username/movies" element={<TitlesPage type="movie" />} />
           <Route path="/u/:username/shows" element={<TitlesPage type="show" />} />
           <Route path="/u/:username/movies/:id" element={<DetailPage type="movie" />} />

@@ -19,6 +19,7 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { username },
       include: {
+        _count: { select: { followers: true, following: true } },
         topPicks: {
           orderBy: { rank: 'asc' },
           include: { title: true },
@@ -52,6 +53,8 @@ export class UsersService {
     return {
       username: user.username,
       bio: user.bio,
+      followersCount: user._count.followers,
+      followingCount: user._count.following,
       topPicks: user.topPicks.map((p) => ({ rank: p.rank, title: p.title })),
       movies,
       shows,
@@ -63,6 +66,71 @@ export class UsersService {
         coverPosters: c.items.map((i) => i.title.posterUrl).filter((p): p is string => p !== null),
       })),
     };
+  }
+
+  /** List a profile's followers in newest-first order. */
+  async getFollowers(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        followers: {
+          orderBy: { createdAt: 'desc' },
+          select: { follower: { select: { username: true, bio: true } } },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    return user.followers.map(({ follower }) => follower);
+  }
+
+  /** List the profiles a user follows in newest-first order. */
+  async getFollowing(username: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { username },
+      select: {
+        following: {
+          orderBy: { createdAt: 'desc' },
+          select: { following: { select: { username: true, bio: true } } },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    return user.following.map(({ following }) => following);
+  }
+
+  /** Check whether one user follows the profile identified by username. */
+  async getFollowStatus(followerId: number, username: string) {
+    const following = await this.findUserByUsernameOrThrow(username);
+    const follow = await this.prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId, followingId: following.id } },
+      select: { followerId: true },
+    });
+
+    return { isFollowing: follow !== null };
+  }
+
+  /** Create a follow relation unless it already exists. */
+  async follow(followerId: number, username: string) {
+    const following = await this.findUserByUsernameOrThrow(username);
+    if (following.id === followerId) throw new BadRequestException('You cannot follow yourself');
+
+    await this.prisma.follow.upsert({
+      where: { followerId_followingId: { followerId, followingId: following.id } },
+      create: { followerId, followingId: following.id },
+      update: {},
+    });
+
+    return { isFollowing: true };
+  }
+
+  /** Remove a follow relation if it exists. */
+  async unfollow(followerId: number, username: string) {
+    const following = await this.findUserByUsernameOrThrow(username);
+    await this.prisma.follow.deleteMany({ where: { followerId, followingId: following.id } });
+
+    return { isFollowing: false };
   }
 
   async getPublicCollection(username: string, collectionId: number) {

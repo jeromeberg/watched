@@ -18,14 +18,29 @@ enum WatchStatus {
 }
 
 model User {
-  id             Int            @id @default(autoincrement())
-  username       String         @unique
-  passwordHash   String
-  bio            String?
-  createdAt      DateTime       @default(now())
-  titles         UserTitle[]
-  collections    Collection[]
-  topPicks       UserTopPick[]
+  id           Int           @id @default(autoincrement())
+  username     String        @unique
+  passwordHash String
+  bio          String?
+  createdAt    DateTime      @default(now())
+  titles       UserTitle[]
+  collections  Collection[]
+  topPicks     UserTopPick[]
+  followers    Follow[]      @relation("Following")
+  following    Follow[]      @relation("Follower")
+}
+
+model Follow {
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+  @@index([followerId, createdAt])
+  @@index([followingId, createdAt])
 }
 
 model Title {
@@ -52,7 +67,7 @@ model UserTitle {
   rating  Int?
   status  WatchStatus @default(TO_WATCH)
   notes   String?
-  addedAt DateTime @default(now())
+  addedAt DateTime    @default(now())
 
   user  User  @relation(fields: [userId], references: [id])
   title Title @relation(fields: [titleId], references: [id])
@@ -82,7 +97,7 @@ model Collection {
   description String?
   createdAt   DateTime @default(now())
 
-  user  User            @relation(fields: [userId], references: [id])
+  user  User             @relation(fields: [userId], references: [id])
   items CollectionItem[]
 
   @@index([userId])
