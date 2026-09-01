@@ -2,6 +2,8 @@ import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { RegisterDto } from '../../auth/dto/auth.dto';
 import { AddTitleDto } from './add-title.dto';
 import { TitleListQueryDto } from './title-list-query.dto';
+import { UpdateSettingsDto } from '../../users/dto/settings.dto';
+import { UpdateUserTitleDto } from './update-user-title.dto';
 
 /** Build the validation configuration used by HTTP requests. */
 function createValidationPipe() {
@@ -45,6 +47,18 @@ describe('validated DTOs', () => {
       BadRequestException,
     );
     await expect(validate({ limit: '0' }, TitleListQueryDto, 'query')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('accepts current visibility values and rejects future values', async () => {
+    await expect(validate({ visibility: 'PUBLIC' }, UpdateSettingsDto, 'body')).resolves.toMatchObject({
+      visibility: 'PUBLIC',
+    });
+    await expect(validate({ visibility: 'PRIVATE' }, UpdateUserTitleDto, 'body')).resolves.toMatchObject({
+      visibility: 'PRIVATE',
+    });
+    await expect(validate({ visibility: 'FRIENDS' }, UpdateSettingsDto, 'body')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });

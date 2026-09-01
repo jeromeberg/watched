@@ -2,6 +2,7 @@ export type WatchStatus = 'WATCHED' | 'TO_WATCH';
 export type Filter = 'all' | 'to_watch' | 'watched';
 export type TitleType = 'MOVIE' | 'TV';
 export type MediaType = 'movie' | 'show';
+export type Visibility = 'PUBLIC' | 'PRIVATE';
 
 // --- Titles ---
 
@@ -25,6 +26,7 @@ export interface LibraryTitle extends TitleMetadata {
   rating: number | null;
   status: WatchStatus;
   notes: string | null;
+  visibility: Visibility;
 }
 
 export interface SearchResult extends PosterTitle {
@@ -42,6 +44,7 @@ export interface ProfileTopPick {
 export interface PublicProfile {
   username: string;
   bio: string | null;
+  contentVisibility: Visibility;
   followersCount: number;
   followingCount: number;
   topPicks: ProfileTopPick[];
@@ -61,6 +64,7 @@ export interface CollectionTitle extends TitleMetadata {
   rating: number | null;
   status: WatchStatus;
   notes: string | null;
+  visibility: Visibility;
 }
 
 export interface CollectionItem {
@@ -74,6 +78,7 @@ export interface CollectionDetail {
   id: number;
   name: string;
   description: string | null;
+  visibility: Visibility;
   items: CollectionItem[];
 }
 
@@ -81,6 +86,7 @@ export interface CollectionSummary {
   id: number;
   name: string;
   description: string | null;
+  visibility: Visibility;
   itemCount: number;
   coverPosters: string[];
 }

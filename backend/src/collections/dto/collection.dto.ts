@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
+import { Visibility } from '@prisma/client';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator';
 
 const COLLECTION_NAME_MAX_LENGTH = 100;
 const COLLECTION_DESCRIPTION_MAX_LENGTH = 500;
@@ -16,6 +17,7 @@ export class CreateCollectionDto {
   @IsString()
   @MaxLength(COLLECTION_DESCRIPTION_MAX_LENGTH)
   description?: string | null;
+
 }
 
 /** Validate fields that may be changed on a collection. */
@@ -31,6 +33,10 @@ export class UpdateCollectionDto {
   @IsString()
   @MaxLength(COLLECTION_DESCRIPTION_MAX_LENGTH)
   description?: string | null;
+
+  @IsOptional()
+  @IsEnum(Visibility)
+  visibility?: Visibility;
 }
 
 /** Validate one library title selected for a collection. */

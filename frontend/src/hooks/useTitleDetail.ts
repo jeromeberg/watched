@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ApiError, api, getErrorMessage, isAbortError } from '../api/client';
-import { LibraryTitle, MEDIA, MediaType, WatchStatus } from '../types';
+import { LibraryTitle, MEDIA, MediaType, Visibility, WatchStatus } from '../types';
 
-export type TitleUpdates = Partial<Pick<LibraryTitle, 'rating' | 'status' | 'notes'>>;
+export type TitleUpdates = Partial<Pick<LibraryTitle, 'rating' | 'status' | 'notes' | 'visibility'>>;
 
 interface UseTitleDetailOptions {
   type: MediaType;
@@ -42,6 +42,7 @@ export function useTitleDetail({
   const [mutationFailure, setMutationFailure] = useState<{ key: string; message: string } | null>(null);
   const [savingStatusFor, setSavingStatusFor] = useState<string | null>(null);
   const [savingRatingFor, setSavingRatingFor] = useState<string | null>(null);
+  const [savingVisibilityFor, setSavingVisibilityFor] = useState<string | null>(null);
   const loading = readState.key !== basePath;
   const title = loading ? null : readState.title;
   const notFound = !loading && readState.notFound;
@@ -49,6 +50,7 @@ export function useTitleDetail({
   const mutationError = mutationFailure?.key === basePath ? mutationFailure.message : '';
   const savingStatus = savingStatusFor === basePath;
   const savingRating = savingRatingFor === basePath;
+  const savingVisibility = savingVisibilityFor === basePath;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -121,6 +123,20 @@ export function useTitleDetail({
     }
   }
 
+  /** Persist one library item's visibility. */
+  async function updateVisibility(visibility: Visibility) {
+    if (visibility === title?.visibility) return;
+    const mutationKey = basePath;
+    setSavingVisibilityFor(mutationKey);
+    try {
+      await updateTitle({ visibility });
+    } catch {
+      return;
+    } finally {
+      setSavingVisibilityFor((current) => (current === mutationKey ? null : current));
+    }
+  }
+
   async function updateNotes(notes: string | null): Promise<boolean> {
     if (notes === title?.notes) return false;
     try {
@@ -151,8 +167,10 @@ export function useTitleDetail({
     mutationError,
     savingStatus,
     savingRating,
+    savingVisibility,
     updateStatus,
     updateRating,
+    updateVisibility,
     updateNotes,
     deleteTitle,
   };

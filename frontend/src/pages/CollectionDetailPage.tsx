@@ -79,11 +79,11 @@ export function CollectionDetailPage() {
     return () => controller.abort();
   }, [basePath]);
 
-  async function handleEdit(name: string, description: string) {
-    const updated = await api.patch<Pick<CollectionDetail, 'name' | 'description'>>(`/collections/${id}`, {
-      name,
-      description,
-    });
+  async function handleEdit(name: string, description: string, visibility: CollectionDetail['visibility']) {
+    const updated = await api.patch<Pick<CollectionDetail, 'name' | 'description' | 'visibility'>>(
+      `/collections/${id}`,
+      { name, description, visibility },
+    );
     setReadState((previous) =>
       previous.key === basePath && previous.collection
         ? {
@@ -92,6 +92,7 @@ export function CollectionDetailPage() {
               ...previous.collection,
               name: updated.name,
               description: updated.description,
+              visibility: updated.visibility,
             },
           }
         : previous,
@@ -257,7 +258,11 @@ export function CollectionDetailPage() {
       {showEdit && (
         <CollectionFormModal
           heading="Edit collection"
-          initial={{ name: collection.name, description: collection.description ?? '' }}
+          initial={{
+            name: collection.name,
+            description: collection.description ?? '',
+            visibility: collection.visibility,
+          }}
           onSubmit={handleEdit}
           onClose={() => setShowEdit(false)}
         />

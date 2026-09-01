@@ -47,7 +47,7 @@ export class CollectionsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateCollectionDto,
   ) {
-    return this.collectionsService.update(req.user.id, id, dto.name, dto.description);
+    return this.collectionsService.update(req.user.id, id, dto.name, dto.description, dto.visibility);
   }
 
   @Delete(':id')

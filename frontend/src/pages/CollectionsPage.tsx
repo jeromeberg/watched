@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { CollectionFormModal } from '../components/CollectionFormModal';
 import { CollectionsGrid } from '../components/CollectionsGrid';
-import { CollectionSummary } from '../types';
+import { CollectionSummary, Visibility } from '../types';
 import { api } from '../api/client';
 import { Button } from '../components/Button';
 import { ErrorMessage } from '../components/ErrorMessage';
@@ -36,10 +36,12 @@ export function CollectionsPage() {
   }, []);
 
   async function handleCreate(name: string, description: string) {
-    const created = await api.post<{ id: number; name: string; description: string | null }>('/collections', {
-      name,
-      description,
-    });
+    const created = await api.post<{
+      id: number;
+      name: string;
+      description: string | null;
+      visibility: Visibility;
+    }>('/collections', { name, description });
     setCollections((prev) => [{ ...created, itemCount: 0, coverPosters: [] }, ...prev]);
   }
 

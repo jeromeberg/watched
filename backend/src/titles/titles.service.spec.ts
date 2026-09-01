@@ -1,4 +1,4 @@
-import { TitleType, WatchStatus } from '@prisma/client';
+import { TitleType, Visibility, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService, TmdbTitleMetadata } from '../tmdb/tmdb.service';
 import { TitlesService } from './titles.service';
@@ -95,5 +95,40 @@ describe('TitlesService addTitle', () => {
         }),
       }),
     );
+  });
+});
+
+describe('TitlesService visibility', () => {
+  it('updates visibility on the user-title relation', async () => {
+    const prisma = {
+      userTitle: {
+        findUnique: jest.fn().mockResolvedValue({ userId: 1, titleId: 9 }),
+        update: jest.fn().mockResolvedValue({ userId: 1, titleId: 9, visibility: Visibility.PRIVATE }),
+      },
+    } as unknown as PrismaService;
+    const service = new TitlesService(prisma, {} as TmdbService);
+
+    await service.updateUserTitle(1, 9, { visibility: Visibility.PRIVATE });
+
+    expect(prisma.userTitle.update).toHaveBeenCalledWith({
+      where: { userId_titleId: { userId: 1, titleId: 9 } },
+      data: { visibility: Visibility.PRIVATE },
+    });
+  });
+
+  it('does not return a private title through a public lookup', async () => {
+    const prisma = {
+      userTitle: {
+        findUnique: jest.fn().mockResolvedValue({
+          userId: 1,
+          titleId: 9,
+          visibility: Visibility.PRIVATE,
+          title: { id: 9, type: TitleType.MOVIE },
+        }),
+      },
+    } as unknown as PrismaService;
+    const service = new TitlesService(prisma, {} as TmdbService);
+
+    await expect(service.getUserTitle(TitleType.MOVIE, 1, 9, Visibility.PUBLIC)).resolves.toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -38,6 +39,7 @@ export class CollectionsService {
       id: c.id,
       name: c.name,
       description: c.description,
+      visibility: c.visibility,
       createdAt: c.createdAt,
       itemCount: c._count.items,
       coverPosters: c.items.map((i) => i.title.posterUrl).filter((p): p is string => p !== null),
@@ -71,19 +73,73 @@ export class CollectionsService {
             rating: userTitle?.rating ?? null,
             status: userTitle?.status ?? 'TO_WATCH',
             notes: userTitle?.notes ?? null,
+            visibility: userTitle?.visibility ?? Visibility.PUBLIC,
           },
         };
       }),
     };
   }
 
-  async update(userId: number, id: number, name?: string, description?: string | null) {
+  /** Return one publicly visible collection with only its publicly visible titles. */
+  async findPublicOne(userId: number, id: number) {
+    const collection = await this.prisma.collection.findFirst({
+      where: { id, userId, visibility: Visibility.PUBLIC },
+      include: {
+        items: {
+          where: {
+            title: {
+              userTitles: { some: { userId, visibility: Visibility.PUBLIC } },
+            },
+          },
+          include: {
+            title: {
+              include: {
+                userTitles: { where: { userId, visibility: Visibility.PUBLIC } },
+              },
+            },
+          },
+          orderBy: { addedAt: 'desc' },
+        },
+      },
+    });
+    if (!collection) throw new NotFoundException('Collection not found');
+
+    return {
+      ...collection,
+      items: collection.items.map((item) => {
+        const { userTitles, ...title } = item.title;
+        const userTitle = userTitles[0];
+        if (!userTitle) throw new NotFoundException('Title not found');
+        return {
+          collectionId: item.collectionId,
+          titleId: item.titleId,
+          addedAt: item.addedAt,
+          title: {
+            ...title,
+            rating: userTitle.rating,
+            status: userTitle.status,
+            notes: userTitle.notes,
+            visibility: userTitle.visibility,
+          },
+        };
+      }),
+    };
+  }
+
+  async update(
+    userId: number,
+    id: number,
+    name?: string,
+    description?: string | null,
+    visibility?: Visibility,
+  ) {
     await this.assertOwner(userId, id);
     return this.prisma.collection.update({
       where: { id },
       data: {
         ...(name !== undefined && { name }),
         ...(description !== undefined && { description }),
+        ...(visibility !== undefined && { visibility }),
       },
     });
   }

@@ -33,8 +33,10 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
     mutationError,
     savingStatus,
     savingRating,
+    savingVisibility,
     updateStatus,
     updateRating,
+    updateVisibility,
     updateNotes,
     deleteTitle,
   } = useTitleDetail({ type, id, username, isOtherUser, onUpdate, onRemove });
@@ -173,11 +175,23 @@ export function Detail({ type, id, username, onUpdate, onRemove }: DetailProps) 
         </div>
       )}
 
-      {/* Delete button */}
       {!isOtherUser && (
-        <Button variant="dangerOutline" onClick={() => setShowDelete(true)}>
-          Delete
-        </Button>
+        <div className="flex items-center justify-between gap-3">
+          <Button variant="dangerOutline" onClick={() => setShowDelete(true)}>
+            Delete
+          </Button>
+          <Button
+            variant={title.visibility === 'PUBLIC' ? 'secondary' : 'primary'}
+            disabled={savingVisibility}
+            onClick={() => updateVisibility(title.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC')}
+          >
+            {savingVisibility
+              ? 'Saving...'
+              : title.visibility === 'PUBLIC'
+                ? 'Set private'
+                : 'Set public'}
+          </Button>
+        </div>
       )}
 
       {showDelete && (

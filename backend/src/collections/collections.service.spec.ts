@@ -1,4 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CollectionsService } from './collections.service';
 
@@ -52,5 +53,18 @@ describe('CollectionsService', () => {
     await expect(service.remove(1, 4)).resolves.toEqual({ ok: true });
     expect(prisma.collection.delete).toHaveBeenCalledWith({ where: { id: 4 } });
     expect(prisma.collectionItem.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('hides a private collection behind a not-found response', async () => {
+    const prisma = createPrisma();
+    prisma.collection.findFirst = jest.fn().mockResolvedValue(null);
+    const service = new CollectionsService(prisma);
+
+    await expect(service.findPublicOne(1, 4)).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.collection.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 4, userId: 1, visibility: Visibility.PUBLIC },
+      }),
+    );
   });
 });

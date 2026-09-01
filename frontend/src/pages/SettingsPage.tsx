@@ -1,11 +1,13 @@
-import { useState, SubmitEvent } from 'react';
+import { useEffect, useState, SubmitEvent } from 'react';
 import { Layout } from '../components/Layout';
 import { Text } from '../components/Text';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { Container } from '../components/Container';
-import { api } from '../api/client';
+import { VisibilityControl } from '../components/VisibilityControl';
+import { api, getErrorMessage, isAbortError } from '../api/client';
+import { Visibility } from '../types';
 
 export function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -14,6 +16,40 @@ export function SettingsPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility | null>(null);
+  const [visibilityError, setVisibilityError] = useState('');
+  const [savingVisibility, setSavingVisibility] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api
+      .get<{ visibility: Visibility }>('/me/settings', { signal: controller.signal })
+      .then((settings) => {
+        if (!controller.signal.aborted) setVisibility(settings.visibility);
+      })
+      .catch((requestError: unknown) => {
+        if (controller.signal.aborted || isAbortError(requestError)) return;
+        setVisibilityError(getErrorMessage(requestError, 'Could not load visibility'));
+      });
+    return () => controller.abort();
+  }, []);
+
+  /** Persist the visibility applied to the user's library and collections. */
+  async function handleVisibilityChange(nextVisibility: Visibility) {
+    if (!visibility || nextVisibility === visibility || savingVisibility) return;
+    setSavingVisibility(true);
+    setVisibilityError('');
+    try {
+      const settings = await api.patch<{ visibility: Visibility }>('/me/settings', {
+        visibility: nextVisibility,
+      });
+      setVisibility(settings.visibility);
+    } catch (requestError) {
+      setVisibilityError(getErrorMessage(requestError, 'Could not update visibility'));
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
 
   async function handleChangePassword(e: SubmitEvent) {
     e.preventDefault();
@@ -45,6 +81,22 @@ export function SettingsPage() {
         <Text as="h1" variant="heading" size="2xl">
           Settings
         </Text>
+
+        <Container>
+          {visibility ? (
+            <VisibilityControl
+              value={visibility}
+              onChange={handleVisibilityChange}
+              saving={savingVisibility}
+              error={visibilityError}
+              description="Private hides your entire library and all collections from other users. Individual choices are preserved."
+            />
+          ) : visibilityError ? (
+            <ErrorMessage>{visibilityError}</ErrorMessage>
+          ) : (
+            <Text color="subtle">Loading...</Text>
+          )}
+        </Container>
 
         {/* Change password */}
         <Container as="form" label="Change password" onSubmit={handleChangePassword} className="space-y-4">

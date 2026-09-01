@@ -13,6 +13,7 @@ import { Button, buttonClasses } from '../components/Button';
 import { Text, textClasses } from '../components/Text';
 import { Textarea } from '../components/Textarea';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { Container } from '../components/Container';
 
 const PROFILE_TITLES_LIMIT = 10;
 
@@ -48,7 +49,8 @@ export function ProfilePage() {
     error: '',
   });
   const isOwnProfile = user?.username === username;
-  const loading = readState.key !== profileKey;
+  const profileRequestKey = `${isOwnProfile ? 'owner' : 'public'}:${profileKey}`;
+  const loading = readState.key !== profileRequestKey;
   const profile = loading ? null : readState.profile;
   const notFound = !loading && readState.notFound;
   const error = loading ? '' : readState.error;
@@ -59,34 +61,35 @@ export function ProfilePage() {
   const [savingBioFor, setSavingBioFor] = useState<string | null>(null);
   const [bioFailure, setBioFailure] = useState<{ key: string; message: string } | null>(null);
   const editingBio = editingBioFor === profileKey;
-  const savingBio = savingBioFor === profileKey;
-  const bioError = bioFailure?.key === profileKey ? bioFailure.message : '';
+  const savingBio = savingBioFor === profileRequestKey;
+  const bioError = bioFailure?.key === profileRequestKey ? bioFailure.message : '';
 
   useEffect(() => {
     const controller = new AbortController();
+    const profilePath = isOwnProfile ? '/me/profile' : `/users/${profileKey}/public`;
     api
-      .get<PublicProfile>(`/users/${profileKey}/public`, { signal: controller.signal })
+      .get<PublicProfile>(profilePath, { signal: controller.signal })
       .then((loadedProfile) => {
         if (!controller.signal.aborted) {
-          setReadState({ key: profileKey, profile: loadedProfile, notFound: false, error: '' });
+          setReadState({ key: profileRequestKey, profile: loadedProfile, notFound: false, error: '' });
         }
       })
       .catch((requestError: unknown) => {
         if (controller.signal.aborted) return;
         if (isAbortError(requestError)) return;
         if (requestError instanceof ApiError && requestError.status === 404) {
-          setReadState({ key: profileKey, profile: null, notFound: true, error: '' });
+          setReadState({ key: profileRequestKey, profile: null, notFound: true, error: '' });
           return;
         }
         setReadState({
-          key: profileKey,
+          key: profileRequestKey,
           profile: null,
           notFound: false,
           error: getErrorMessage(requestError, 'Could not load profile'),
         });
       });
     return () => controller.abort();
-  }, [profileKey]);
+  }, [isOwnProfile, profileKey, profileRequestKey]);
 
   useEffect(() => {
     if (!user || isOwnProfile) return;
@@ -120,7 +123,7 @@ export function ProfilePage() {
   }
 
   async function handleSaveBio() {
-    const mutationKey = profileKey;
+    const mutationKey = profileRequestKey;
     setSavingBioFor(mutationKey);
     setBioFailure(null);
     try {
@@ -154,7 +157,7 @@ export function ProfilePage() {
 
       setFollowState({ key: profileKey, isFollowing: !wasFollowing, saving: false, error: '' });
       setReadState((previous) =>
-        previous.key === profileKey && previous.profile
+        previous.key === profileRequestKey && previous.profile
           ? {
               ...previous,
               profile: {
@@ -211,6 +214,7 @@ export function ProfilePage() {
   const displayedMovies = profile.movies.slice(0, PROFILE_TITLES_LIMIT);
   const displayedShows = profile.shows.slice(0, PROFILE_TITLES_LIMIT);
   const followLoading = !!user && !isOwnProfile && followState.key !== profileKey;
+  const contentIsVisible = isOwnProfile || profile.contentVisibility === 'PUBLIC';
 
   return (
     <Layout>
@@ -299,84 +303,88 @@ export function ProfilePage() {
           </div>
         )}
 
-        {/* Picks */}
-        <ProfilePicks
-          username={username!}
-          topPicks={profile.topPicks}
-          isOwnProfile={isOwnProfile}
-          onSaved={(topPicks) =>
-            setReadState((previous) =>
-              previous.key === profileKey && previous.profile
-                ? { ...previous, profile: { ...previous.profile, topPicks } }
-                : previous,
-            )
-          }
-        />
-
-        {/* Movies */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Text as="h2" variant="label">
-              🎬 Movies
-            </Text>
-            <Link to={`/u/${profile.username}/movies`} className={textClasses('link', 'xs', 'muted')}>
-              ↗ View all
-            </Link>
-          </div>
-
-          {displayedMovies.length > 0 ? (
-            <GridView
-              type="movie"
-              titles={displayedMovies}
-              basePath={`/u/${profile.username}/movies`}
-              onSelect={(t) => setSelected({ key: profileKey, type: 'movie', id: t.id })}
+        {contentIsVisible ? (
+          <>
+            <ProfilePicks
+              username={username!}
+              topPicks={profile.topPicks}
+              isOwnProfile={isOwnProfile}
+              onSaved={(topPicks) =>
+                setReadState((previous) =>
+                  previous.key === profileRequestKey && previous.profile
+                    ? { ...previous, profile: { ...previous.profile, topPicks } }
+                    : previous,
+                )
+              }
             />
-          ) : (
-            <Text color="faint">No watched movies yet...</Text>
-          )}
-        </section>
 
-        {/* Shows */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Text as="h2" variant="label">
-              📺 Shows
-            </Text>
-            <Link to={`/u/${profile.username}/shows`} className={textClasses('link', 'xs', 'muted')}>
-              ↗ View all
-            </Link>
-          </div>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Text as="h2" variant="label">
+                  🎬 Movies
+                </Text>
+                <Link to={`/u/${profile.username}/movies`} className={textClasses('link', 'xs', 'muted')}>
+                  ↗ View all
+                </Link>
+              </div>
 
-          {displayedShows.length > 0 ? (
-            <GridView
-              type="show"
-              titles={displayedShows}
-              basePath={`/u/${profile.username}/shows`}
-              onSelect={(t) => setSelected({ key: profileKey, type: 'show', id: t.id })}
-            />
-          ) : (
-            <Text color="faint">No watched TV shows yet...</Text>
-          )}
-        </section>
+              {displayedMovies.length > 0 ? (
+                <GridView
+                  type="movie"
+                  titles={displayedMovies}
+                  basePath={`/u/${profile.username}/movies`}
+                  onSelect={(t) => setSelected({ key: profileKey, type: 'movie', id: t.id })}
+                />
+              ) : (
+                <Text color="faint">No watched movies yet...</Text>
+              )}
+            </section>
 
-        {/* Collections */}
-        <section className="space-y-4">
-          <Text as="h2" variant="label">
-            📚 Collections
-          </Text>
-          {profile.collections.length > 0 ? (
-            <CollectionsGrid
-              collections={profile.collections}
-              basePath={`/u/${profile.username}/collections`}
-            />
-          ) : (
-            <Text color="faint">No collection yet...</Text>
-          )}
-        </section>
+            <section className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Text as="h2" variant="label">
+                  📺 Shows
+                </Text>
+                <Link to={`/u/${profile.username}/shows`} className={textClasses('link', 'xs', 'muted')}>
+                  ↗ View all
+                </Link>
+              </div>
+
+              {displayedShows.length > 0 ? (
+                <GridView
+                  type="show"
+                  titles={displayedShows}
+                  basePath={`/u/${profile.username}/shows`}
+                  onSelect={(t) => setSelected({ key: profileKey, type: 'show', id: t.id })}
+                />
+              ) : (
+                <Text color="faint">No watched TV shows yet...</Text>
+              )}
+            </section>
+
+            <section className="space-y-4">
+              <Text as="h2" variant="label">
+                📚 Collections
+              </Text>
+              {profile.collections.length > 0 ? (
+                <CollectionsGrid
+                  collections={profile.collections}
+                  basePath={`/u/${profile.username}/collections`}
+                />
+              ) : (
+                <Text color="faint">No collection yet...</Text>
+              )}
+            </section>
+          </>
+        ) : (
+          <Container>
+            <Text color="muted">Library and collections are private.</Text>
+          </Container>
+        )}
       </div>
 
       {/* Modal */}
-      {selected?.key === profileKey && (
+      {contentIsVisible && selected?.key === profileKey && (
         <TitleDetailModal
           type={selected.type}
           id={selected.id}

@@ -5,17 +5,19 @@ import { Text } from './Text';
 import { Textarea } from './Textarea';
 import { Input } from './Input';
 import { ErrorMessage } from './ErrorMessage';
+import { Visibility } from '../types';
 
 interface CollectionFormModalProps {
-  initial?: { name: string; description: string };
+  initial?: { name: string; description: string; visibility?: Visibility };
   heading: string;
-  onSubmit: (name: string, description: string) => Promise<void>;
+  onSubmit: (name: string, description: string, visibility: Visibility) => Promise<void>;
   onClose: () => void;
 }
 
 export function CollectionFormModal({ initial, heading, onSubmit, onClose }: CollectionFormModalProps) {
   const [name, setName] = useState(initial?.name ?? '');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const [visibility, setVisibility] = useState<Visibility>(initial?.visibility ?? 'PUBLIC');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,7 +27,7 @@ export function CollectionFormModal({ initial, heading, onSubmit, onClose }: Col
     setLoading(true);
     setError('');
     try {
-      await onSubmit(name.trim(), description.trim());
+      await onSubmit(name.trim(), description.trim(), visibility);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -64,6 +66,34 @@ export function CollectionFormModal({ initial, heading, onSubmit, onClose }: Col
             rows={2}
           />
         </div>
+
+        {initial?.visibility && (
+          <div className="space-y-2">
+            <Text as="label" className="block">
+              Visibility
+            </Text>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Visibility">
+              <Button
+                type="button"
+                variant={visibility === 'PUBLIC' ? 'primary' : 'secondary'}
+                size="full"
+                aria-pressed={visibility === 'PUBLIC'}
+                onClick={() => setVisibility('PUBLIC')}
+              >
+                Public
+              </Button>
+              <Button
+                type="button"
+                variant={visibility === 'PRIVATE' ? 'primary' : 'secondary'}
+                size="full"
+                aria-pressed={visibility === 'PRIVATE'}
+                onClick={() => setVisibility('PRIVATE')}
+              >
+                Private
+              </Button>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-3 pt-1">
           <Button type="button" variant="ghost" size="full" onClick={onClose}>

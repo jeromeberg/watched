@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { TitleType, WatchStatus } from '@prisma/client';
+import { TitleType, Visibility, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService } from '../tmdb/tmdb.service';
 import { AddTitleDto } from './dto/add-title.dto';
@@ -9,6 +9,7 @@ export interface TitleListOptions {
   status?: WatchStatus;
   order?: 'rating' | 'added';
   limit?: number;
+  visibility?: Visibility;
 }
 
 // validate query params ?status=&order=&limit=
@@ -68,6 +69,7 @@ export class TitlesService {
         userId,
         title: { type },
         ...(opts.status && { status: opts.status }),
+        ...(opts.visibility && { visibility: opts.visibility }),
       },
       include: { title: true },
       orderBy: opts.order === 'rating' ? { rating: { sort: 'desc', nulls: 'last' } } : { addedAt: 'desc' },
@@ -76,12 +78,12 @@ export class TitlesService {
     return rows.map((r) => this.mergeUserTitle(r));
   }
 
-  async getUserTitle(type: TitleType, userId: number, titleId: number) {
+  async getUserTitle(type: TitleType, userId: number, titleId: number, visibility?: Visibility) {
     const row = await this.prisma.userTitle.findUnique({
       where: { userId_titleId: { userId, titleId } },
       include: { title: true },
     });
-    if (!row || row.title.type !== type) return null;
+    if (!row || row.title.type !== type || (visibility && row.visibility !== visibility)) return null;
     return this.mergeUserTitle(row);
   }
 
@@ -95,6 +97,7 @@ export class TitlesService {
     if ('rating' in updates) data.rating = updates.rating;
     if ('status' in updates) data.status = updates.status;
     if ('notes' in updates) data.notes = updates.notes;
+    if ('visibility' in updates) data.visibility = updates.visibility;
 
     return this.prisma.userTitle.update({
       where: { userId_titleId: { userId, titleId } },
@@ -130,7 +133,15 @@ export class TitlesService {
     rating: number | null;
     status: WatchStatus;
     notes: string | null;
+    visibility: Visibility;
   }) {
-    return { ...row.title, addedAt: row.addedAt, rating: row.rating, status: row.status, notes: row.notes };
+    return {
+      ...row.title,
+      addedAt: row.addedAt,
+      rating: row.rating,
+      status: row.status,
+      notes: row.notes,
+      visibility: row.visibility,
+    };
   }
 }

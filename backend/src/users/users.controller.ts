@@ -17,6 +17,7 @@ import { UsersService } from './users.service';
 import { titleTypeForRoute } from '../titles/title-route.config';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/profile.dto';
+import { UpdateSettingsDto } from './dto/settings.dto';
 import { TitleListQueryDto } from '../titles/dto/title-list-query.dto';
 
 @Controller()
@@ -87,10 +88,31 @@ export class UsersController {
     return this.usersService.getPublicTitle(username, titleTypeForRoute(library), id);
   }
 
+  @Get('me/profile')
+  @UseGuards(JwtAuthGuard)
+  /** Return the signed-in user's complete profile. */
+  getOwnProfile(@Req() req: AuthenticatedRequest) {
+    return this.usersService.getOwnProfile(req.user.id);
+  }
+
   @Patch('me/profile')
   @UseGuards(JwtAuthGuard)
   updateProfile(@Req() req: AuthenticatedRequest, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user.id, dto.bio, dto.topPicks);
+  }
+
+  @Get('me/settings')
+  @UseGuards(JwtAuthGuard)
+  /** Return the signed-in user's content settings. */
+  getSettings(@Req() req: AuthenticatedRequest) {
+    return this.usersService.getSettings(req.user.id);
+  }
+
+  @Patch('me/settings')
+  @UseGuards(JwtAuthGuard)
+  /** Update the signed-in user's content settings. */
+  updateSettings(@Req() req: AuthenticatedRequest, @Body() dto: UpdateSettingsDto) {
+    return this.usersService.updateSettings(req.user.id, dto);
   }
 
   @Patch('me/password')
