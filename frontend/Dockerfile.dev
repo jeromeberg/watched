@@ -1,6 +1,6 @@
-FROM node:20-alpine
+FROM node:24-alpine
 WORKDIR /app
 COPY package*.json ./
-RUN npm install
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --fetch-retries=5
 COPY . .
 CMD ["npm", "run", "dev"]
