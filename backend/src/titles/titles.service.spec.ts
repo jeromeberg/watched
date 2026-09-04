@@ -1,14 +1,32 @@
-import { TitleType, Visibility, WatchStatus } from '@prisma/client';
+import { ActivityType, Prisma, TitleType, Visibility, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService, TmdbTitleMetadata } from '../tmdb/tmdb.service';
+import { ActivityService } from '../activity/activity.service';
 import { TitlesService } from './titles.service';
 
 /** Create Prisma methods used by title creation. */
 function createPrisma() {
-  return {
+  const prisma = {
     title: { upsert: jest.fn() },
-    userTitle: { upsert: jest.fn() },
+    userTitle: {
+      createMany: jest.fn(),
+      findUnique: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
+      update: jest.fn(),
+    },
   } as unknown as PrismaService;
+  prisma.$transaction = jest.fn((callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+    callback(prisma as unknown as Prisma.TransactionClient),
+  ) as unknown as PrismaService['$transaction'];
+  return prisma;
+}
+
+/** Create activity methods used by title service tests. */
+function createActivityService() {
+  return {
+    recordTitle: jest.fn(),
+    removeTitle: jest.fn(),
+  } as unknown as ActivityService;
 }
 
 /** Build an authoritative title record returned by TMDB. */
@@ -39,7 +57,8 @@ describe('TitlesService addTitle', () => {
       getTvDetails: jest.fn(),
     } as unknown as TmdbService;
     prisma.title.upsert = jest.fn().mockResolvedValue(storedTitle(TitleType.MOVIE, movie));
-    prisma.userTitle.upsert = jest.fn().mockResolvedValue({
+    prisma.userTitle.createMany = jest.fn().mockResolvedValue({ count: 1 });
+    prisma.userTitle.findUniqueOrThrow = jest.fn().mockResolvedValue({
       userId: 1,
       titleId: 9,
       addedAt: new Date('2026-01-01'),
@@ -47,8 +66,11 @@ describe('TitlesService addTitle', () => {
       status: WatchStatus.TO_WATCH,
       notes: null,
     });
+    const activityService = createActivityService();
 
-    await new TitlesService(prisma, tmdb).addTitle(TitleType.MOVIE, 1, { tmdbId: 44 });
+    await new TitlesService(prisma, tmdb, activityService).addTitle(TitleType.MOVIE, 1, {
+      tmdbId: 44,
+    });
 
     expect(tmdb.getMovieDetails).toHaveBeenCalledWith(44);
     expect(tmdb.getTvDetails).not.toHaveBeenCalled();
@@ -62,6 +84,12 @@ describe('TitlesService addTitle', () => {
         }),
       }),
     );
+    expect(activityService.recordTitle).toHaveBeenCalledWith(
+      expect.anything(),
+      1,
+      9,
+      ActivityType.TITLE_ADDED,
+    );
   });
 
   it('fetches and stores authoritative TV creator metadata', async () => {
@@ -72,7 +100,8 @@ describe('TitlesService addTitle', () => {
       getTvDetails: jest.fn().mockResolvedValue(show),
     } as unknown as TmdbService;
     prisma.title.upsert = jest.fn().mockResolvedValue(storedTitle(TitleType.TV, show));
-    prisma.userTitle.upsert = jest.fn().mockResolvedValue({
+    prisma.userTitle.createMany = jest.fn().mockResolvedValue({ count: 1 });
+    prisma.userTitle.findUniqueOrThrow = jest.fn().mockResolvedValue({
       userId: 2,
       titleId: 9,
       addedAt: new Date('2026-01-01'),
@@ -81,7 +110,9 @@ describe('TitlesService addTitle', () => {
       notes: null,
     });
 
-    await new TitlesService(prisma, tmdb).addTitle(TitleType.TV, 2, { tmdbId: 45 });
+    await new TitlesService(prisma, tmdb, createActivityService()).addTitle(TitleType.TV, 2, {
+      tmdbId: 45,
+    });
 
     expect(tmdb.getTvDetails).toHaveBeenCalledWith(45);
     expect(tmdb.getMovieDetails).not.toHaveBeenCalled();
@@ -100,13 +131,24 @@ describe('TitlesService addTitle', () => {
 
 describe('TitlesService visibility', () => {
   it('updates visibility on the user-title relation', async () => {
-    const prisma = {
-      userTitle: {
-        findUnique: jest.fn().mockResolvedValue({ userId: 1, titleId: 9 }),
-        update: jest.fn().mockResolvedValue({ userId: 1, titleId: 9, visibility: Visibility.PRIVATE }),
-      },
-    } as unknown as PrismaService;
-    const service = new TitlesService(prisma, {} as TmdbService);
+    const prisma = createPrisma();
+    prisma.userTitle.findUnique = jest.fn().mockResolvedValue({
+      userId: 1,
+      titleId: 9,
+      rating: null,
+      status: WatchStatus.TO_WATCH,
+      notes: null,
+      visibility: Visibility.PUBLIC,
+    });
+    prisma.userTitle.update = jest.fn().mockResolvedValue({
+      userId: 1,
+      titleId: 9,
+      rating: null,
+      status: WatchStatus.TO_WATCH,
+      notes: null,
+      visibility: Visibility.PRIVATE,
+    });
+    const service = new TitlesService(prisma, {} as TmdbService, createActivityService());
 
     await service.updateUserTitle(1, 9, { visibility: Visibility.PRIVATE });
 
@@ -127,8 +169,62 @@ describe('TitlesService visibility', () => {
         }),
       },
     } as unknown as PrismaService;
-    const service = new TitlesService(prisma, {} as TmdbService);
+    const service = new TitlesService(prisma, {} as TmdbService, createActivityService());
 
     await expect(service.getUserTitle(TitleType.MOVIE, 1, 9, Visibility.PUBLIC)).resolves.toBeNull();
+  });
+});
+
+describe('TitlesService activity', () => {
+  it('records a watched activity only when status changes', async () => {
+    const prisma = createPrisma();
+    prisma.userTitle.findUnique = jest.fn().mockResolvedValue({
+      userId: 1,
+      titleId: 9,
+      rating: null,
+      status: WatchStatus.TO_WATCH,
+      notes: null,
+      visibility: Visibility.PUBLIC,
+    });
+    prisma.userTitle.update = jest.fn().mockResolvedValue({
+      userId: 1,
+      titleId: 9,
+      rating: null,
+      status: WatchStatus.WATCHED,
+      notes: null,
+      visibility: Visibility.PUBLIC,
+    });
+    const activityService = createActivityService();
+    const service = new TitlesService(prisma, {} as TmdbService, activityService);
+
+    await service.updateUserTitle(1, 9, { status: WatchStatus.WATCHED });
+
+    expect(activityService.recordTitle).toHaveBeenCalledWith(
+      expect.anything(),
+      1,
+      9,
+      ActivityType.TITLE_STATUS_CHANGED,
+      { status: WatchStatus.WATCHED },
+      true,
+    );
+  });
+
+  it('does not update or record activity for a no-op change', async () => {
+    const prisma = createPrisma();
+    prisma.userTitle.findUnique = jest.fn().mockResolvedValue({
+      userId: 1,
+      titleId: 9,
+      rating: 8,
+      status: WatchStatus.WATCHED,
+      notes: null,
+      visibility: Visibility.PUBLIC,
+    });
+    const activityService = createActivityService();
+    const service = new TitlesService(prisma, {} as TmdbService, activityService);
+
+    await service.updateUserTitle(1, 9, { rating: 8 });
+
+    expect(prisma.userTitle.update).not.toHaveBeenCalled();
+    expect(activityService.recordTitle).not.toHaveBeenCalled();
   });
 });

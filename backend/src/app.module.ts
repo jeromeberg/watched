@@ -11,6 +11,7 @@ import { TitlesModule } from './titles/titles.module';
 import { CollectionsModule } from './collections/collections.module';
 import { UsersModule } from './users/users.module';
 import { DemoModule } from './demo/demo.module';
+import { ActivityModule } from './activity/activity.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DemoModule } from './demo/demo.module';
     CollectionsModule,
     UsersModule,
     DemoModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

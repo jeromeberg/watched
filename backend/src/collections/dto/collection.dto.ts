@@ -18,6 +18,9 @@ export class CreateCollectionDto {
   @MaxLength(COLLECTION_DESCRIPTION_MAX_LENGTH)
   description?: string | null;
 
+  @IsOptional()
+  @IsEnum(Visibility)
+  visibility?: Visibility;
 }
 
 /** Validate fields that may be changed on a collection. */

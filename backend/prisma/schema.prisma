@@ -22,6 +22,17 @@ enum Visibility {
   PRIVATE
 }
 
+enum ActivityType {
+  TITLE_ADDED
+  TITLE_STATUS_CHANGED
+  TITLE_RATING_CHANGED
+  TITLE_NOTE_CHANGED
+  COLLECTION_CREATED
+  COLLECTION_UPDATED
+  COLLECTION_ITEM_ADDED
+  COLLECTION_ITEM_REMOVED
+}
+
 model User {
   id                Int           @id @default(autoincrement())
   username          String        @unique
@@ -36,6 +47,7 @@ model User {
   topPicks          UserTopPick[]
   followers         Follow[]      @relation("Following")
   following         Follow[]      @relation("Follower")
+  activities        Activity[]
 
   @@index([isDemo, expiresAt])
 }
@@ -79,9 +91,11 @@ model UserTitle {
   notes      String?
   visibility Visibility  @default(PUBLIC)
   addedAt    DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title Title @relation(fields: [titleId], references: [id])
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title      Title      @relation(fields: [titleId], references: [id])
+  activities Activity[]
 
   @@id([userId, titleId])
   @@index([userId, status])
@@ -108,9 +122,11 @@ model Collection {
   description String?
   visibility  Visibility @default(PUBLIC)
   createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  user  User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items CollectionItem[]
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      CollectionItem[]
+  activities Activity[]
 
   @@index([userId])
 }
@@ -124,4 +140,21 @@ model CollectionItem {
   title      Title      @relation(fields: [titleId], references: [id])
 
   @@id([collectionId, titleId])
+}
+
+model Activity {
+  id               Int          @id @default(autoincrement())
+  actorId          Int
+  type             ActivityType
+  userTitleUserId  Int?
+  userTitleTitleId Int?
+  collectionId     Int?
+  payload          Json?
+  createdAt        DateTime     @default(now())
+
+  actor      User        @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  userTitle  UserTitle?  @relation(fields: [userTitleUserId, userTitleTitleId], references: [userId, titleId], onDelete: Cascade)
+  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, id])
 }

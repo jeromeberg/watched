@@ -28,7 +28,7 @@ export class CollectionsController {
 
   @Post()
   create(@Req() req: AuthenticatedRequest, @Body() dto: CreateCollectionDto) {
-    return this.collectionsService.create(req.user.id, dto.name, dto.description);
+    return this.collectionsService.create(req.user.id, dto.name, dto.description, dto.visibility);
   }
 
   @Get()

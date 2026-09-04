@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { TitleType, Visibility, WatchStatus } from '@prisma/client';
+import { ActivityType, Prisma, TitleType, Visibility, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TmdbService } from '../tmdb/tmdb.service';
+import { ActivityService } from '../activity/activity.service';
 import { AddTitleDto } from './dto/add-title.dto';
 import { UpdateUserTitleDto } from './dto/update-user-title.dto';
 
@@ -20,6 +21,7 @@ export class TitlesService {
   constructor(
     private prisma: PrismaService,
     private tmdb: TmdbService,
+    private activityService: ActivityService,
   ) {}
 
   search(type: TitleType, query: string) {
@@ -54,13 +56,19 @@ export class TitlesService {
       },
     });
 
-    const userTitle = await this.prisma.userTitle.upsert({
-      where: { userId_titleId: { userId, titleId: title.id } },
-      create: { userId, titleId: title.id },
-      update: {},
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.userTitle.createMany({
+        data: { userId, titleId: title.id },
+        skipDuplicates: true,
+      });
+      const userTitle = await tx.userTitle.findUniqueOrThrow({
+        where: { userId_titleId: { userId, titleId: title.id } },
+      });
+      if (count > 0) {
+        await this.activityService.recordTitle(tx, userId, title.id, ActivityType.TITLE_ADDED);
+      }
+      return this.mergeUserTitle({ ...userTitle, title });
     });
-
-    return this.mergeUserTitle({ ...userTitle, title });
   }
 
   async getUserTitles(type: TitleType, userId: number, opts: TitleListOptions = {}) {
@@ -88,20 +96,70 @@ export class TitlesService {
   }
 
   async updateUserTitle(userId: number, titleId: number, updates: UpdateUserTitleDto) {
-    const userTitle = await this.prisma.userTitle.findUnique({
-      where: { userId_titleId: { userId, titleId } },
-    });
-    if (!userTitle) throw new NotFoundException('Title not in your list');
+    return this.prisma.$transaction(async (tx) => {
+      const userTitle = await tx.userTitle.findUnique({
+        where: { userId_titleId: { userId, titleId } },
+      });
+      if (!userTitle) throw new NotFoundException('Title not in your list');
 
-    const data: Record<string, unknown> = {};
-    if ('rating' in updates) data.rating = updates.rating;
-    if ('status' in updates) data.status = updates.status;
-    if ('notes' in updates) data.notes = updates.notes;
-    if ('visibility' in updates) data.visibility = updates.visibility;
+      const data: Prisma.UserTitleUpdateInput = {};
+      const ratingChanged = 'rating' in updates && updates.rating !== userTitle.rating;
+      const statusChanged = 'status' in updates && updates.status !== userTitle.status;
+      const notesChanged = 'notes' in updates && updates.notes !== userTitle.notes;
+      const visibilityChanged = 'visibility' in updates && updates.visibility !== userTitle.visibility;
+      if (ratingChanged) data.rating = updates.rating;
+      if (statusChanged) data.status = updates.status;
+      if (notesChanged) data.notes = updates.notes;
+      if (visibilityChanged) data.visibility = updates.visibility;
+      if (!ratingChanged && !statusChanged && !notesChanged && !visibilityChanged) return userTitle;
 
-    return this.prisma.userTitle.update({
-      where: { userId_titleId: { userId, titleId } },
-      data,
+      const updated = await tx.userTitle.update({
+        where: { userId_titleId: { userId, titleId } },
+        data,
+      });
+      if (ratingChanged) {
+        if (updated.rating === null) {
+          await this.activityService.removeTitle(tx, userId, titleId, ActivityType.TITLE_RATING_CHANGED);
+        } else {
+          await this.activityService.recordTitle(
+            tx,
+            userId,
+            titleId,
+            ActivityType.TITLE_RATING_CHANGED,
+            { rating: updated.rating },
+            true,
+          );
+        }
+      }
+      if (statusChanged) {
+        if (updated.status === WatchStatus.WATCHED) {
+          await this.activityService.recordTitle(
+            tx,
+            userId,
+            titleId,
+            ActivityType.TITLE_STATUS_CHANGED,
+            { status: updated.status },
+            true,
+          );
+        } else {
+          await this.activityService.removeTitle(tx, userId, titleId, ActivityType.TITLE_STATUS_CHANGED);
+        }
+      }
+      if (notesChanged) {
+        if (updated.notes?.trim()) {
+          await this.activityService.recordTitle(
+            tx,
+            userId,
+            titleId,
+            ActivityType.TITLE_NOTE_CHANGED,
+            { notes: updated.notes },
+            true,
+          );
+        } else {
+          await this.activityService.removeTitle(tx, userId, titleId, ActivityType.TITLE_NOTE_CHANGED);
+        }
+      }
+      return updated;
     });
   }
 

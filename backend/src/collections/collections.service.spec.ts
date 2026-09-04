@@ -1,23 +1,39 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { Visibility } from '@prisma/client';
+import { ActivityType, Prisma, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ActivityService } from '../activity/activity.service';
 import { CollectionsService } from './collections.service';
 
 /** Build the Prisma calls required by collection service tests. */
 function createPrisma() {
-  return {
+  const prisma = {
     collection: {
+      create: jest.fn(),
       findFirst: jest.fn(),
       delete: jest.fn(),
+      update: jest.fn(),
     },
     collectionItem: {
+      createMany: jest.fn(),
       deleteMany: jest.fn(),
-      upsert: jest.fn(),
+      findUniqueOrThrow: jest.fn(),
     },
     userTitle: {
       findUnique: jest.fn(),
     },
   } as unknown as PrismaService;
+  prisma.$transaction = jest.fn((callback: (tx: Prisma.TransactionClient) => Promise<unknown>) =>
+    callback(prisma as unknown as Prisma.TransactionClient),
+  ) as unknown as PrismaService['$transaction'];
+  return prisma;
+}
+
+/** Create activity methods used by collection service tests. */
+function createActivityService() {
+  return {
+    recordCollection: jest.fn(),
+    recordCollectionItem: jest.fn(),
+  } as unknown as ActivityService;
 }
 
 describe('CollectionsService', () => {
@@ -25,30 +41,39 @@ describe('CollectionsService', () => {
     const prisma = createPrisma();
     prisma.collection.findFirst = jest.fn().mockResolvedValue({ id: 4, userId: 1 });
     prisma.userTitle.findUnique = jest.fn().mockResolvedValue(null);
-    const service = new CollectionsService(prisma);
+    const service = new CollectionsService(prisma, createActivityService());
 
     await expect(service.addItem(1, 4, 9)).rejects.toBeInstanceOf(BadRequestException);
-    expect(prisma.collectionItem.upsert).not.toHaveBeenCalled();
+    expect(prisma.collectionItem.createMany).not.toHaveBeenCalled();
   });
 
   it('adds a title in the requesting user library', async () => {
     const prisma = createPrisma();
     prisma.collection.findFirst = jest.fn().mockResolvedValue({ id: 4, userId: 1 });
     prisma.userTitle.findUnique = jest.fn().mockResolvedValue({ userId: 1, titleId: 9 });
-    prisma.collectionItem.upsert = jest.fn().mockResolvedValue({ collectionId: 4, titleId: 9 });
-    const service = new CollectionsService(prisma);
+    prisma.collectionItem.createMany = jest.fn().mockResolvedValue({ count: 1 });
+    prisma.collectionItem.findUniqueOrThrow = jest.fn().mockResolvedValue({ collectionId: 4, titleId: 9 });
+    const activityService = createActivityService();
+    const service = new CollectionsService(prisma, activityService);
 
     await expect(service.addItem(1, 4, 9)).resolves.toEqual({ collectionId: 4, titleId: 9 });
     expect(prisma.userTitle.findUnique).toHaveBeenCalledWith({
       where: { userId_titleId: { userId: 1, titleId: 9 } },
     });
+    expect(activityService.recordCollectionItem).toHaveBeenCalledWith(
+      expect.anything(),
+      1,
+      4,
+      9,
+      ActivityType.COLLECTION_ITEM_ADDED,
+    );
   });
 
   it('deletes a collection without manually deleting its items', async () => {
     const prisma = createPrisma();
     prisma.collection.findFirst = jest.fn().mockResolvedValue({ id: 4, userId: 1 });
     prisma.collection.delete = jest.fn().mockResolvedValue({ id: 4 });
-    const service = new CollectionsService(prisma);
+    const service = new CollectionsService(prisma, createActivityService());
 
     await expect(service.remove(1, 4)).resolves.toEqual({ ok: true });
     expect(prisma.collection.delete).toHaveBeenCalledWith({ where: { id: 4 } });
@@ -58,7 +83,7 @@ describe('CollectionsService', () => {
   it('hides a private collection behind a not-found response', async () => {
     const prisma = createPrisma();
     prisma.collection.findFirst = jest.fn().mockResolvedValue(null);
-    const service = new CollectionsService(prisma);
+    const service = new CollectionsService(prisma, createActivityService());
 
     await expect(service.findPublicOne(1, 4)).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.collection.findFirst).toHaveBeenCalledWith(

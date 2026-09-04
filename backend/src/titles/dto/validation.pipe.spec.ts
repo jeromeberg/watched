@@ -4,6 +4,8 @@ import { AddTitleDto } from './add-title.dto';
 import { TitleListQueryDto } from './title-list-query.dto';
 import { UpdateSettingsDto } from '../../users/dto/settings.dto';
 import { UpdateUserTitleDto } from './update-user-title.dto';
+import { CreateCollectionDto } from '../../collections/dto/collection.dto';
+import { FeedQueryDto } from '../../activity/dto/feed-query.dto';
 
 /** Build the validation configuration used by HTTP requests. */
 function createValidationPipe() {
@@ -58,7 +60,20 @@ describe('validated DTOs', () => {
     await expect(validate({ visibility: 'PRIVATE' }, UpdateUserTitleDto, 'body')).resolves.toMatchObject({
       visibility: 'PRIVATE',
     });
+    await expect(
+      validate({ name: 'Private collection', visibility: 'PRIVATE' }, CreateCollectionDto, 'body'),
+    ).resolves.toMatchObject({ name: 'Private collection', visibility: 'PRIVATE' });
     await expect(validate({ visibility: 'FRIENDS' }, UpdateSettingsDto, 'body')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it('transforms and bounds feed pagination values', async () => {
+    await expect(validate({ cursor: '20', limit: '10' }, FeedQueryDto, 'query')).resolves.toMatchObject({
+      cursor: 20,
+      limit: 10,
+    });
+    await expect(validate({ limit: '51' }, FeedQueryDto, 'query')).rejects.toBeInstanceOf(
       BadRequestException,
     );
   });
