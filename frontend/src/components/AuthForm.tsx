@@ -1,5 +1,7 @@
 import { useState, SubmitEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { getErrorMessage } from '../api/client';
 import { Text } from './Text';
 import { Input } from './Input';
 import { Button } from './Button';
@@ -25,10 +27,12 @@ export function AuthForm({
   footer,
 }: AuthFormProps) {
   const navigate = useNavigate();
+  const { demoLogin } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -41,6 +45,19 @@ export function AuthForm({
       setError(err instanceof Error ? err.message : errorFallback);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleDemo() {
+    setError('');
+    setDemoLoading(true);
+    try {
+      await demoLogin();
+      navigate('/movies');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Could not start the demo'));
+    } finally {
+      setDemoLoading(false);
     }
   }
 
@@ -83,8 +100,26 @@ export function AuthForm({
             />
           </div>
 
-          <Button type="submit" variant="primary" disabled={loading} className="w-full py-2.5">
+          <Button type="submit" variant="primary" disabled={loading || demoLoading} className="w-full py-2.5">
             {loading ? loadingLabel : submitLabel}
+          </Button>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+            <Text size="xs" color="subtle">
+              or
+            </Text>
+            <div className="h-px flex-1 bg-[var(--color-border)]" />
+          </div>
+
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={loading || demoLoading}
+            className="w-full py-2.5"
+            onClick={handleDemo}
+          >
+            {demoLoading ? 'Starting demo...' : 'Demo'}
           </Button>
 
           <Text className="text-center">{footer}</Text>

@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -27,7 +27,18 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    return this.issueToken(user);
+  }
+
+  /**
+   * Signs an access token for one user.
+   *
+   * @param user Account the token authenticates.
+   * @param expiresIn Optional lifetime overriding the module default.
+   * @return The bearer token expected by the frontend.
+   */
+  issueToken(user: { id: number; username: string }, expiresIn?: JwtSignOptions['expiresIn']) {
     const payload = { sub: user.id, username: user.username };
-    return { access_token: this.jwtService.sign(payload) };
+    return { access_token: this.jwtService.sign(payload, expiresIn ? { expiresIn } : {}) };
   }
 }

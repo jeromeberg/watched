@@ -11,6 +11,7 @@ interface AuthContextType {
   user: User | null;
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, password: string) => Promise<void>;
+  demoLogin: () => Promise<void>;
   logout: () => void;
 }
 
@@ -56,7 +57,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login(username, password);
   }
 
-  return <AuthContext.Provider value={{ user, login, register, logout }}>{children}</AuthContext.Provider>;
+  /** Create a temporary demo account and sign in as it. */
+  async function demoLogin() {
+    const { access_token } = await api.post<{ access_token: string }>('/demo', {});
+    storeToken(access_token);
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, demoLogin, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
