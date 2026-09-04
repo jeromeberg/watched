@@ -25,13 +25,15 @@ export function Layout({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const nav = [
+    { href: '/', label: 'Feed' },
     { href: '/movies', label: 'Movies' },
     { href: '/shows', label: 'Shows' },
     { href: '/collections', label: 'Collections' },
   ];
 
   function navLinkClass(href: string) {
-    return pathname.startsWith(href)
+    const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
+    return active
       ? `${textClasses('body', 'sm', 'white')} font-medium transition-colors`
       : textClasses('link', 'sm', 'muted');
   }
@@ -41,9 +43,11 @@ export function Layout({ children }: { children: ReactNode }) {
       <header className="relative z-50 bg-gray-900 border-b border-gray-800 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Text as="span" variant="heading" size="xl" className="tracking-tight">
-              Watched
-            </Text>
+            <Link to="/">
+              <Text as="span" variant="heading" size="xl" className="tracking-tight">
+                Watched
+              </Text>
+            </Link>
             <nav className="hidden sm:flex gap-4">
               {nav.map((link) => (
                 <Link key={link.href} to={link.href} className={navLinkClass(link.href)}>

@@ -10,6 +10,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { ConnectionsPage } from './pages/ConnectionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TitlesPage } from './pages/TitlesPage';
+import { FeedPage } from './pages/FeedPage';
 
 function App() {
   return (
@@ -18,6 +19,14 @@ function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <FeedPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/movies"
             element={
@@ -82,7 +91,7 @@ function App() {
           <Route path="/u/:username/movies/:id" element={<DetailPage type="movie" />} />
           <Route path="/u/:username/shows/:id" element={<DetailPage type="show" />} />
           <Route path="/u/:username/collections/:id" element={<CollectionDetailPage />} />
-          <Route path="*" element={<Navigate to="/movies" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </BrowserRouter>

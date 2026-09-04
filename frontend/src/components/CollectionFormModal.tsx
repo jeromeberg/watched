@@ -67,33 +67,31 @@ export function CollectionFormModal({ initial, heading, onSubmit, onClose }: Col
           />
         </div>
 
-        {initial?.visibility && (
-          <div className="space-y-2">
-            <Text as="label" className="block">
-              Visibility
-            </Text>
-            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Visibility">
-              <Button
-                type="button"
-                variant={visibility === 'PUBLIC' ? 'primary' : 'secondary'}
-                size="full"
-                aria-pressed={visibility === 'PUBLIC'}
-                onClick={() => setVisibility('PUBLIC')}
-              >
-                Public
-              </Button>
-              <Button
-                type="button"
-                variant={visibility === 'PRIVATE' ? 'primary' : 'secondary'}
-                size="full"
-                aria-pressed={visibility === 'PRIVATE'}
-                onClick={() => setVisibility('PRIVATE')}
-              >
-                Private
-              </Button>
-            </div>
+        <div className="space-y-2">
+          <Text as="label" className="block">
+            Visibility
+          </Text>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="Visibility">
+            <Button
+              type="button"
+              variant={visibility === 'PUBLIC' ? 'primary' : 'secondary'}
+              size="full"
+              aria-pressed={visibility === 'PUBLIC'}
+              onClick={() => setVisibility('PUBLIC')}
+            >
+              Public
+            </Button>
+            <Button
+              type="button"
+              variant={visibility === 'PRIVATE' ? 'primary' : 'secondary'}
+              size="full"
+              aria-pressed={visibility === 'PRIVATE'}
+              onClick={() => setVisibility('PRIVATE')}
+            >
+              Private
+            </Button>
           </div>
-        )}
+        </div>
 
         <div className="flex gap-3 pt-1">
           <Button type="button" variant="ghost" size="full" onClick={onClose}>

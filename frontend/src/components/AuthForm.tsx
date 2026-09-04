@@ -40,7 +40,7 @@ export function AuthForm({
     setLoading(true);
     try {
       await onSubmit(username, password);
-      navigate('/movies');
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : errorFallback);
     } finally {
@@ -53,7 +53,7 @@ export function AuthForm({
     setDemoLoading(true);
     try {
       await demoLogin();
-      navigate('/movies');
+      navigate('/');
     } catch (err) {
       setError(getErrorMessage(err, 'Could not start the demo'));
     } finally {

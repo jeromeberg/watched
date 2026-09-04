@@ -35,13 +35,13 @@ export function CollectionsPage() {
     return () => controller.abort();
   }, []);
 
-  async function handleCreate(name: string, description: string) {
+  async function handleCreate(name: string, description: string, visibility: Visibility) {
     const created = await api.post<{
       id: number;
       name: string;
       description: string | null;
       visibility: Visibility;
-    }>('/collections', { name, description });
+    }>('/collections', { name, description, visibility });
     setCollections((prev) => [{ ...created, itemCount: 0, coverPosters: [] }, ...prev]);
   }
 

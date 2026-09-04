@@ -3,6 +3,15 @@ export type Filter = 'all' | 'to_watch' | 'watched';
 export type TitleType = 'MOVIE' | 'TV';
 export type MediaType = 'movie' | 'show';
 export type Visibility = 'PUBLIC' | 'PRIVATE';
+export type ActivityType =
+  | 'TITLE_ADDED'
+  | 'TITLE_STATUS_CHANGED'
+  | 'TITLE_RATING_CHANGED'
+  | 'TITLE_NOTE_CHANGED'
+  | 'COLLECTION_CREATED'
+  | 'COLLECTION_UPDATED'
+  | 'COLLECTION_ITEM_ADDED'
+  | 'COLLECTION_ITEM_REMOVED';
 
 // --- Titles ---
 
@@ -56,6 +65,36 @@ export interface PublicProfile {
 export interface FriendUser {
   username: string;
   bio: string | null;
+}
+
+// --- Feed ---
+
+export interface FeedTitle extends PosterTitle {
+  id: number;
+  type: TitleType;
+  releaseYear: number | null;
+}
+
+export interface FeedCollection {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface FeedActivity {
+  id: number;
+  type: ActivityType;
+  createdAt: string;
+  actor: { username: string };
+  payload: Record<string, unknown> | null;
+  title: FeedTitle | null;
+  collection: FeedCollection | null;
+}
+
+export interface FeedPage {
+  items: FeedActivity[];
+  nextCursor: number | null;
+  hasFollowing: boolean;
 }
 
 // --- Collections ---
