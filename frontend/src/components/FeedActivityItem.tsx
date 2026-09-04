@@ -23,7 +23,12 @@ export function FeedActivityItem({ activity }: { activity: FeedActivity }) {
   return (
     <article className="flex gap-4 border-b border-gray-800 py-5 first:pt-0">
       {activity.title && (
-        <Link to={titlePath(activity)} className="shrink-0" aria-label={activity.title.title}>
+        <Link
+          to={titlePath(activity)}
+          state={{ from: '/' }}
+          className="shrink-0"
+          aria-label={activity.title.title}
+        >
           <SmallPoster title={activity.title} />
         </Link>
       )}
@@ -35,7 +40,11 @@ export function FeedActivityItem({ activity }: { activity: FeedActivity }) {
           </Link>{' '}
           {copy.leading}{' '}
           {(copy.target === 'title' || copy.target === 'titleAndCollection') && activity.title && (
-            <Link to={titlePath(activity)} className={textClasses('link', 'sm', 'white', 'font-medium')}>
+            <Link
+              to={titlePath(activity)}
+              state={{ from: '/' }}
+              className={textClasses('link', 'sm', 'white', 'font-medium')}
+            >
               {activity.title.title}
             </Link>
           )}
