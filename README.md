@@ -87,7 +87,7 @@ make cloud
 
 ## CI/CD
 
-Push to `main` runs checks, builds Docker images, pushes them to GHCR, then auto-deploys on the production server via a webhook.
+Pushes and pull requests to `main` run the `CI` workflow. On pushes, it checks the code, builds Docker images and pushes them to GHCR. After a successful push workflow, the separate `Deploy` workflow triggers the production webhook.
 
 ![pipeline](./docs/assets/pipeline.png)
 
@@ -98,9 +98,10 @@ Push to `main` runs checks, builds Docker images, pushes them to GHCR, then auto
 
 **Continuous Deployment (CD)**
 
+- Run separately after a successful `CI` push workflow on `main`.
 - Compute HMAC-SHA256 signature of the payload and send it to webhook.
 - Production server verifies signature, pulls the new images and restarts production.
-- ⚠️ Without `DEPLOY_WEBHOOK_URL` and `WEBHOOK_SECRET` set, the pipeline still builds and pushes images to GHCR but skips the deploy step.
+- ⚠️ Without `DEPLOY_WEBHOOK_URL` and `WEBHOOK_SECRET` set, CI still builds and pushes images to GHCR but the deployment is skipped.
 
 ### Deployment setup
 
