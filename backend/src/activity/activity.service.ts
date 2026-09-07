@@ -11,6 +11,21 @@ type ActivityClient = Pick<Prisma.TransactionClient, 'activity' | 'collection' |
 export class ActivityService {
   constructor(private prisma: PrismaService) {}
 
+  /** Record a user-follow activity when the actor is public. */
+  async recordUser(client: ActivityClient, actorId: number, subjectUserId: number, type: ActivityType) {
+    if (!ACTIVITY_POLICY[type].record) return;
+
+    const actor = await client.user.findUnique({
+      where: { id: actorId },
+      select: { contentVisibility: true },
+    });
+    if (actor?.contentVisibility !== Visibility.PUBLIC) return;
+
+    return client.activity.create({
+      data: { actorId, type, subjectUserId },
+    });
+  }
+
   /** Record a title activity when the actor and title are public. */
   async recordTitle(
     client: ActivityClient,
@@ -144,6 +159,7 @@ export class ActivityService {
       },
       include: {
         actor: { select: { username: true } },
+        subjectUser: { select: { username: true } },
         userTitle: { include: { title: true } },
         collection: { select: { id: true, name: true, description: true } },
       },
@@ -158,6 +174,7 @@ export class ActivityService {
       type: activity.type,
       createdAt: activity.createdAt,
       actor: activity.actor,
+      subjectUser: activity.subjectUser,
       payload: activity.payload,
       title: activity.userTitle
         ? {
@@ -181,6 +198,9 @@ export class ActivityService {
   /** Build visibility filters for every activity subject enabled in the feed. */
   private feedSubjectFilters(): Prisma.ActivityWhereInput[] {
     const filters: Prisma.ActivityWhereInput[] = [];
+    this.addSubjectFilter(filters, 'user', {
+      subjectUser: { isNot: null },
+    });
     this.addSubjectFilter(filters, 'title', {
       userTitle: { is: { visibility: Visibility.PUBLIC } },
     });

@@ -4,12 +4,14 @@ export interface ActivityCopy {
   leading: string;
   trailing?: string;
   collectionConnector?: string;
-  target: 'title' | 'collection' | 'titleAndCollection';
+  target: 'user' | 'title' | 'collection' | 'titleAndCollection';
 }
 
 /** Return the text fragments used around linked feed subjects. */
 export function activityCopy(type: ActivityType, payload: Record<string, unknown> | null): ActivityCopy {
   switch (type) {
+    case 'USER_FOLLOWED':
+      return { leading: 'followed', target: 'user' };
     case 'TITLE_ADDED':
       return { leading: 'added', trailing: 'to their library', target: 'title' };
     case 'TITLE_STATUS_CHANGED':

@@ -1,6 +1,6 @@
 import { ActivityType } from '@prisma/client';
 
-export type ActivitySubject = 'title' | 'collection' | 'collectionItem';
+export type ActivitySubject = 'user' | 'title' | 'collection' | 'collectionItem';
 
 interface ActivityPolicyEntry {
   record: boolean;
@@ -9,6 +9,7 @@ interface ActivityPolicyEntry {
 }
 
 export const ACTIVITY_POLICY: Record<ActivityType, ActivityPolicyEntry> = {
+  [ActivityType.USER_FOLLOWED]: { record: true, show: true, subject: 'user' },
   [ActivityType.TITLE_ADDED]: { record: true, show: true, subject: 'title' },
   [ActivityType.TITLE_STATUS_CHANGED]: { record: true, show: true, subject: 'title' },
   [ActivityType.TITLE_RATING_CHANGED]: { record: true, show: true, subject: 'title' },

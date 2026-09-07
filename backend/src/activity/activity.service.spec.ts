@@ -13,6 +13,29 @@ function createActivityClient() {
 }
 
 describe('ActivityService recording', () => {
+  it('records a public user-follow activity', async () => {
+    const client = createActivityClient();
+    client.user.findUnique = jest.fn().mockResolvedValue({ contentVisibility: Visibility.PUBLIC });
+    client.activity.create = jest.fn().mockResolvedValue({ id: 1 });
+    const service = new ActivityService({} as PrismaService);
+
+    await service.recordUser(client, 2, 3, ActivityType.USER_FOLLOWED);
+
+    expect(client.activity.create).toHaveBeenCalledWith({
+      data: { actorId: 2, type: ActivityType.USER_FOLLOWED, subjectUserId: 3 },
+    });
+  });
+
+  it('does not record a user-follow activity for a private actor', async () => {
+    const client = createActivityClient();
+    client.user.findUnique = jest.fn().mockResolvedValue({ contentVisibility: Visibility.PRIVATE });
+    const service = new ActivityService({} as PrismaService);
+
+    await service.recordUser(client, 2, 3, ActivityType.USER_FOLLOWED);
+
+    expect(client.activity.create).not.toHaveBeenCalled();
+  });
+
   it('records a public title activity with its owned-title reference', async () => {
     const client = createActivityClient();
     client.user.findUnique = jest.fn().mockResolvedValue({ contentVisibility: Visibility.PUBLIC });
@@ -67,6 +90,7 @@ describe('ActivityService feed', () => {
             type: ActivityType.TITLE_ADDED,
             createdAt,
             actor: { username: 'alice' },
+            subjectUser: null,
             payload: null,
             userTitle: {
               title: {
@@ -84,6 +108,7 @@ describe('ActivityService feed', () => {
             type: ActivityType.COLLECTION_CREATED,
             createdAt,
             actor: { username: 'alice' },
+            subjectUser: null,
             payload: null,
             userTitle: null,
             collection: { id: 4, name: 'Favourites', description: null },
@@ -100,6 +125,7 @@ describe('ActivityService feed', () => {
           type: ActivityType.TITLE_ADDED,
           createdAt,
           actor: { username: 'alice' },
+          subjectUser: null,
           payload: null,
           title: {
             id: 9,
@@ -123,6 +149,60 @@ describe('ActivityService feed', () => {
         }),
         orderBy: { id: 'desc' },
         take: 2,
+      }),
+    );
+  });
+
+  it('returns the followed user for a user-follow activity', async () => {
+    const createdAt = new Date('2026-09-07T12:00:00.000Z');
+    const prisma = {
+      follow: { findMany: jest.fn().mockResolvedValue([{ followingId: 2 }]) },
+      activity: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 12,
+            type: ActivityType.USER_FOLLOWED,
+            createdAt,
+            actor: { username: 'alice' },
+            subjectUser: { username: 'bob' },
+            payload: null,
+            userTitle: null,
+            collection: null,
+          },
+        ]),
+      },
+    } as unknown as PrismaService;
+    const service = new ActivityService(prisma);
+
+    await expect(service.getFeed(1)).resolves.toEqual({
+      items: [
+        {
+          id: 12,
+          type: ActivityType.USER_FOLLOWED,
+          createdAt,
+          actor: { username: 'alice' },
+          subjectUser: { username: 'bob' },
+          payload: null,
+          title: null,
+          collection: null,
+        },
+      ],
+      nextCursor: null,
+      hasFollowing: true,
+    });
+    expect(prisma.activity.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            {
+              type: { in: [ActivityType.USER_FOLLOWED] },
+              subjectUser: { isNot: null },
+            },
+          ]),
+        }),
+        include: expect.objectContaining({
+          subjectUser: { select: { username: true } },
+        }),
       }),
     );
   });

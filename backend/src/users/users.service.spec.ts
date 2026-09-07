@@ -1,16 +1,18 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { TitleType, Visibility, WatchStatus } from '@prisma/client';
+import { ActivityType, Prisma, TitleType, Visibility, WatchStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { TitlesService } from '../titles/titles.service';
 import { CollectionsService } from '../collections/collections.service';
 import { UsersService } from './users.service';
+import { ActivityService } from '../activity/activity.service';
 
 describe('UsersService follows', () => {
   const userFindUnique = jest.fn();
   const userFindMany = jest.fn();
   const followFindUnique = jest.fn();
-  const followUpsert = jest.fn();
+  const followCreateMany = jest.fn();
   const followDeleteMany = jest.fn();
+  const transaction = jest.fn();
   const userUpdate = jest.fn();
   const topPickFindMany = jest.fn();
   const collectionFindMany = jest.fn();
@@ -18,9 +20,10 @@ describe('UsersService follows', () => {
     user: { findUnique: userFindUnique, findMany: userFindMany, update: userUpdate },
     follow: {
       findUnique: followFindUnique,
-      upsert: followUpsert,
+      createMany: followCreateMany,
       deleteMany: followDeleteMany,
     },
+    $transaction: transaction,
     userTopPick: { findMany: topPickFindMany },
     collection: { findMany: collectionFindMany },
   } as unknown as PrismaService;
@@ -29,21 +32,37 @@ describe('UsersService follows', () => {
   const titlesService = { getUserTitles, getUserTitle } as unknown as TitlesService;
   const findPublicOne = jest.fn();
   const collectionsService = { findPublicOne } as unknown as CollectionsService;
-  const service = new UsersService(prisma, titlesService, collectionsService);
+  const recordUser = jest.fn();
+  const activityService = { recordUser } as unknown as ActivityService;
+  const service = new UsersService(prisma, titlesService, collectionsService, activityService);
 
   beforeEach(() => {
     jest.clearAllMocks();
+    transaction.mockImplementation((callback: (tx: Prisma.TransactionClient) => unknown) =>
+      callback(prisma as unknown as Prisma.TransactionClient),
+    );
+    followCreateMany.mockResolvedValue({ count: 1 });
   });
 
   it('creates a directed follow relation', async () => {
     userFindUnique.mockResolvedValue({ id: 2, username: 'bob' });
 
     await expect(service.follow(1, 'bob')).resolves.toEqual({ isFollowing: true });
-    expect(followUpsert).toHaveBeenCalledWith({
-      where: { followerId_followingId: { followerId: 1, followingId: 2 } },
-      create: { followerId: 1, followingId: 2 },
-      update: {},
+    expect(followCreateMany).toHaveBeenCalledWith({
+      data: { followerId: 1, followingId: 2 },
+      skipDuplicates: true,
     });
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(recordUser).toHaveBeenCalledWith(prisma, 1, 2, ActivityType.USER_FOLLOWED);
+  });
+
+  it('does not record another activity for an existing follow relation', async () => {
+    userFindUnique.mockResolvedValue({ id: 2, username: 'bob' });
+    followCreateMany.mockResolvedValue({ count: 0 });
+
+    await expect(service.follow(1, 'bob')).resolves.toEqual({ isFollowing: true });
+
+    expect(recordUser).not.toHaveBeenCalled();
   });
 
   it('searches other users and includes the current follow state', async () => {
@@ -78,7 +97,7 @@ describe('UsersService follows', () => {
     userFindUnique.mockResolvedValue({ id: 1, username: 'alice' });
 
     await expect(service.follow(1, 'alice')).rejects.toBeInstanceOf(BadRequestException);
-    expect(followUpsert).not.toHaveBeenCalled();
+    expect(followCreateMany).not.toHaveBeenCalled();
   });
 
   it('removes an existing directed follow relation', async () => {

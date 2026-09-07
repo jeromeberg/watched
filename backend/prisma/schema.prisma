@@ -23,6 +23,7 @@ enum Visibility {
 }
 
 enum ActivityType {
+  USER_FOLLOWED
   TITLE_ADDED
   TITLE_STATUS_CHANGED
   TITLE_RATING_CHANGED
@@ -34,20 +35,21 @@ enum ActivityType {
 }
 
 model User {
-  id                Int           @id @default(autoincrement())
-  username          String        @unique
-  passwordHash      String
-  bio               String?
-  contentVisibility Visibility    @default(PUBLIC)
-  isDemo            Boolean       @default(false)
-  expiresAt         DateTime?
-  createdAt         DateTime      @default(now())
-  titles            UserTitle[]
-  collections       Collection[]
-  topPicks          UserTopPick[]
-  followers         Follow[]      @relation("Following")
-  following         Follow[]      @relation("Follower")
-  activities        Activity[]
+  id                 Int           @id @default(autoincrement())
+  username           String        @unique
+  passwordHash       String
+  bio                String?
+  contentVisibility  Visibility    @default(PUBLIC)
+  isDemo             Boolean       @default(false)
+  expiresAt          DateTime?
+  createdAt          DateTime      @default(now())
+  titles             UserTitle[]
+  collections        Collection[]
+  topPicks           UserTopPick[]
+  followers          Follow[]      @relation("Following")
+  following          Follow[]      @relation("Follower")
+  activities         Activity[]    @relation("ActivityActor")
+  followedActivities Activity[]    @relation("ActivitySubjectUser")
 
   @@index([isDemo, expiresAt])
 }
@@ -149,12 +151,14 @@ model Activity {
   userTitleUserId  Int?
   userTitleTitleId Int?
   collectionId     Int?
+  subjectUserId    Int?
   payload          Json?
   createdAt        DateTime     @default(now())
 
-  actor      User        @relation(fields: [actorId], references: [id], onDelete: Cascade)
-  userTitle  UserTitle?  @relation(fields: [userTitleUserId, userTitleTitleId], references: [userId, titleId], onDelete: Cascade)
-  collection Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  actor       User        @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  subjectUser User?       @relation("ActivitySubjectUser", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  userTitle   UserTitle?  @relation(fields: [userTitleUserId, userTitleTitleId], references: [userId, titleId], onDelete: Cascade)
+  collection  Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 
   @@index([actorId, id])
 }

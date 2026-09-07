@@ -4,6 +4,7 @@ export type TitleType = 'MOVIE' | 'TV';
 export type MediaType = 'movie' | 'show';
 export type Visibility = 'PUBLIC' | 'PRIVATE';
 export type ActivityType =
+  | 'USER_FOLLOWED'
   | 'TITLE_ADDED'
   | 'TITLE_STATUS_CHANGED'
   | 'TITLE_RATING_CHANGED'
@@ -90,6 +91,7 @@ export interface FeedActivity {
   type: ActivityType;
   createdAt: string;
   actor: { username: string };
+  subjectUser: { username: string } | null;
   payload: Record<string, unknown> | null;
   title: FeedTitle | null;
   collection: FeedCollection | null;

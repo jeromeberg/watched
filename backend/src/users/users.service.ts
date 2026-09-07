@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException, UnauthorizedException } from '@nestjs/common';
-import { Prisma, TitleType, Visibility, WatchStatus } from '@prisma/client';
+import { ActivityType, Prisma, TitleType, Visibility, WatchStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { TitleListOptions, TitlesService } from '../titles/titles.service';
 import { CollectionsService } from '../collections/collections.service';
 import { UpdateSettingsDto } from './dto/settings.dto';
+import { ActivityService } from '../activity/activity.service';
 
 const PROFILE_TITLES_LIMIT = 10;
 
@@ -14,6 +15,7 @@ export class UsersService {
     private prisma: PrismaService,
     private titlesService: TitlesService,
     private collectionsService: CollectionsService,
+    private activityService: ActivityService,
   ) {}
 
   /** Return a profile with only content visible to other users. */
@@ -99,10 +101,14 @@ export class UsersService {
     const following = await this.findUserByUsernameOrThrow(username);
     if (following.id === followerId) throw new BadRequestException('You cannot follow yourself');
 
-    await this.prisma.follow.upsert({
-      where: { followerId_followingId: { followerId, followingId: following.id } },
-      create: { followerId, followingId: following.id },
-      update: {},
+    await this.prisma.$transaction(async (tx) => {
+      const result = await tx.follow.createMany({
+        data: { followerId, followingId: following.id },
+        skipDuplicates: true,
+      });
+      if (result.count === 1) {
+        await this.activityService.recordUser(tx, followerId, following.id, ActivityType.USER_FOLLOWED);
+      }
     });
 
     return { isFollowing: true };

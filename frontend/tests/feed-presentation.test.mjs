@@ -19,9 +19,13 @@ async function importFeedPresentation() {
   );
 }
 
-test('builds feed copy for title and collection activities', async () => {
+test('builds feed copy for user, title, and collection activities', async () => {
   const { activityCopy } = await importFeedPresentation();
 
+  assert.deepEqual(activityCopy('USER_FOLLOWED', null), {
+    leading: 'followed',
+    target: 'user',
+  });
   assert.deepEqual(activityCopy('TITLE_RATING_CHANGED', { rating: 8 }), {
     leading: 'rated',
     trailing: '8/10',

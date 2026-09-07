@@ -15,6 +15,7 @@ function titlePath(activity: FeedActivity): string {
 export function FeedActivityItem({ activity }: { activity: FeedActivity }) {
   const copy = activityCopy(activity.type, activity.payload);
   const profilePath = `/u/${activity.actor.username}`;
+  const subjectUserPath = activity.subjectUser ? `/u/${activity.subjectUser.username}` : '#';
   const collectionPath = activity.collection
     ? `/u/${activity.actor.username}/collections/${activity.collection.id}`
     : '#';
@@ -39,6 +40,11 @@ export function FeedActivityItem({ activity }: { activity: FeedActivity }) {
             {activity.actor.username}
           </Link>{' '}
           {copy.leading}{' '}
+          {copy.target === 'user' && activity.subjectUser && (
+            <Link to={subjectUserPath} className={textClasses('link', 'sm', 'white', 'font-medium')}>
+              {activity.subjectUser.username}
+            </Link>
+          )}
           {(copy.target === 'title' || copy.target === 'titleAndCollection') && activity.title && (
             <Link
               to={titlePath(activity)}
