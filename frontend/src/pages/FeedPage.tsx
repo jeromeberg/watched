@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, getErrorMessage, isAbortError } from '../api/client';
-import { Button } from '../components/Button';
+import { Button, buttonClasses } from '../components/Button';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { FeedActivityItem } from '../components/FeedActivityItem';
 import { Layout } from '../components/Layout';
@@ -72,9 +73,14 @@ export function FeedPage() {
   return (
     <Layout>
       <div className="mx-auto w-full max-w-2xl space-y-6">
-        <Text as="h1" variant="heading" size="2xl">
-          Feed
-        </Text>
+        <div className="flex items-center justify-between gap-4">
+          <Text as="h1" variant="heading" size="2xl">
+            Feed
+          </Text>
+          <Link to="/people" className={buttonClasses('secondary')}>
+            Find people
+          </Link>
+        </div>
 
         {!feed.loaded ? (
           <Text color="subtle">Loading...</Text>

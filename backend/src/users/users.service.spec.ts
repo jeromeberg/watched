@@ -7,6 +7,7 @@ import { UsersService } from './users.service';
 
 describe('UsersService follows', () => {
   const userFindUnique = jest.fn();
+  const userFindMany = jest.fn();
   const followFindUnique = jest.fn();
   const followUpsert = jest.fn();
   const followDeleteMany = jest.fn();
@@ -14,7 +15,7 @@ describe('UsersService follows', () => {
   const topPickFindMany = jest.fn();
   const collectionFindMany = jest.fn();
   const prisma = {
-    user: { findUnique: userFindUnique, update: userUpdate },
+    user: { findUnique: userFindUnique, findMany: userFindMany, update: userUpdate },
     follow: {
       findUnique: followFindUnique,
       upsert: followUpsert,
@@ -42,6 +43,34 @@ describe('UsersService follows', () => {
       where: { followerId_followingId: { followerId: 1, followingId: 2 } },
       create: { followerId: 1, followingId: 2 },
       update: {},
+    });
+  });
+
+  it('searches other users and includes the current follow state', async () => {
+    userFindMany.mockResolvedValue([
+      { username: 'bob', bio: 'Thrillers', followers: [{ followerId: 1 }] },
+      { username: 'bobby', bio: null, followers: [] },
+    ]);
+
+    await expect(service.searchUsers(1, ' bob ')).resolves.toEqual([
+      { username: 'bob', bio: 'Thrillers', isFollowing: true },
+      { username: 'bobby', bio: null, isFollowing: false },
+    ]);
+    expect(userFindMany).toHaveBeenCalledWith({
+      where: {
+        id: { not: 1 },
+        username: { contains: 'bob', mode: 'insensitive' },
+      },
+      orderBy: { username: 'asc' },
+      take: 20,
+      select: {
+        username: true,
+        bio: true,
+        followers: {
+          where: { followerId: 1 },
+          select: { followerId: true },
+        },
+      },
     });
   });
 
@@ -137,9 +166,7 @@ describe('UsersService follows', () => {
     });
     topPickFindMany.mockResolvedValue([]);
     collectionFindMany.mockResolvedValue([]);
-    getUserTitles
-      .mockResolvedValueOnce([privateMovie])
-      .mockResolvedValueOnce([]);
+    getUserTitles.mockResolvedValueOnce([privateMovie]).mockResolvedValueOnce([]);
 
     await expect(service.getOwnProfile(2)).resolves.toMatchObject({ movies: [privateMovie] });
     expect(getUserTitles).toHaveBeenCalledWith(
@@ -153,9 +180,7 @@ describe('UsersService follows', () => {
     userFindUnique.mockResolvedValue({ id: 2, contentVisibility: Visibility.PUBLIC });
     getUserTitle.mockResolvedValue(null);
 
-    await expect(service.getPublicTitle('bob', TitleType.MOVIE, 9)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(service.getPublicTitle('bob', TitleType.MOVIE, 9)).rejects.toBeInstanceOf(NotFoundException);
     expect(getUserTitle).toHaveBeenCalledWith(TitleType.MOVIE, 2, 9, Visibility.PUBLIC);
   });
 

@@ -19,10 +19,18 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/profile.dto';
 import { UpdateSettingsDto } from './dto/settings.dto';
 import { TitleListQueryDto } from '../titles/dto/title-list-query.dto';
+import { UserSearchQueryDto } from './dto/user-search-query.dto';
 
 @Controller()
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  /** Search for profiles by username for the signed-in user. */
+  @Get('users/search')
+  @UseGuards(JwtAuthGuard)
+  searchUsers(@Req() req: AuthenticatedRequest, @Query() query: UserSearchQueryDto) {
+    return this.usersService.searchUsers(req.user.id, query.q);
+  }
 
   @Get('users/:username/public')
   getPublicProfile(@Param('username') username: string) {

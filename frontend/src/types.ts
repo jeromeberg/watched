@@ -67,6 +67,10 @@ export interface FriendUser {
   bio: string | null;
 }
 
+export interface FriendSearchResult extends FriendUser {
+  isFollowing: boolean;
+}
+
 // --- Feed ---
 
 export interface FeedTitle extends PosterTitle {

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ApiError, api, getErrorMessage, isAbortError } from '../api/client';
 import { Layout } from '../components/Layout';
 import { ErrorMessage } from '../components/ErrorMessage';
+import { FriendUserItem } from '../components/FriendUserItem';
 import { Text, textClasses } from '../components/Text';
 import { FriendUser } from '../types';
 
@@ -83,23 +84,7 @@ export function ConnectionsPage({ type }: ConnectionsPageProps) {
         ) : (
           <div className="divide-y divide-gray-800 border-y border-gray-800">
             {readState.users.map((connection) => (
-              <Link
-                key={connection.username}
-                to={`/u/${connection.username}`}
-                className="flex items-center gap-4 py-4 hover:bg-gray-800/40 transition-colors"
-              >
-                <div className="w-11 h-11 shrink-0 rounded-full bg-blue-600 flex items-center justify-center font-bold">
-                  {connection.username[0].toUpperCase()}
-                </div>
-                <div className="min-w-0">
-                  <Text variant="heading">{connection.username}</Text>
-                  {connection.bio && (
-                    <Text color="muted" className="mt-1 truncate">
-                      {connection.bio}
-                    </Text>
-                  )}
-                </div>
-              </Link>
+              <FriendUserItem key={connection.username} user={connection} />
             ))}
           </div>
         )}

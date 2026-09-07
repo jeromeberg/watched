@@ -11,6 +11,7 @@ import { ConnectionsPage } from './pages/ConnectionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { TitlesPage } from './pages/TitlesPage';
 import { FeedPage } from './pages/FeedPage';
+import { PeoplePage } from './pages/PeoplePage';
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <FeedPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/people"
+            element={
+              <ProtectedRoute>
+                <PeoplePage />
               </ProtectedRoute>
             }
           />

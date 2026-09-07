@@ -26,6 +26,31 @@ export class UsersService {
     return this.getProfile({ id: userId }, true);
   }
 
+  /** Find other profiles whose usernames contain the search query. */
+  async searchUsers(userId: number, query: string) {
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { not: userId },
+        username: { contains: query.trim(), mode: 'insensitive' },
+      },
+      orderBy: { username: 'asc' },
+      take: 20,
+      select: {
+        username: true,
+        bio: true,
+        followers: {
+          where: { followerId: userId },
+          select: { followerId: true },
+        },
+      },
+    });
+
+    return users.map(({ followers, ...user }) => ({
+      ...user,
+      isFollowing: followers.length > 0,
+    }));
+  }
+
   /** List a profile's followers in newest-first order. */
   async getFollowers(username: string) {
     const user = await this.prisma.user.findUnique({
