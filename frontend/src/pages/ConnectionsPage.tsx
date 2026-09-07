@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api, getErrorMessage, isAbortError } from '../api/client';
+import { buttonClasses } from '../components/Button';
 import { Layout } from '../components/Layout';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { FriendUserItem } from '../components/FriendUserItem';
@@ -68,9 +69,14 @@ export function ConnectionsPage({ type }: ConnectionsPageProps) {
           <Link to={`/u/${profileUsername}`} className={textClasses('link', 'sm', 'muted')}>
             Back to {profileUsername}
           </Link>
-          <Text as="h1" variant="heading" size="2xl">
-            {label}
-          </Text>
+          <div className="flex items-center justify-between gap-4">
+            <Text as="h1" variant="heading" size="2xl">
+              {label}
+            </Text>
+            <Link to="/people" className={buttonClasses('secondary')}>
+              Find people
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -82,7 +88,7 @@ export function ConnectionsPage({ type }: ConnectionsPageProps) {
         ) : readState.users.length === 0 ? (
           <Text color="faint">No {type} yet.</Text>
         ) : (
-          <div className="divide-y divide-gray-800 border-y border-gray-800">
+          <div>
             {readState.users.map((connection) => (
               <FriendUserItem key={connection.username} user={connection} />
             ))}

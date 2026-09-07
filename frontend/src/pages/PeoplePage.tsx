@@ -119,7 +119,7 @@ export function PeoplePage() {
         ) : !searchError && results.length === 0 ? (
           <Text color="faint">No people found.</Text>
         ) : (
-          <div className="divide-y divide-gray-800 border-y border-gray-800">
+          <div>
             {results.map((result) => {
               const isSaving = saving.has(result.username);
               return (
